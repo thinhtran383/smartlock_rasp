@@ -20,7 +20,6 @@ row_pins = [17, 27, 22, 5]
 col_pins = [23, 24, 25, 16]
 
 
-
 keypad = Keypad(row_pins, col_pins)
 
 led = LEDController()
@@ -36,8 +35,6 @@ keyInput = '';
 
 
 lcd = I2C_LCD_driver.lcd()
-
-
 
 
 while True:
