@@ -9,9 +9,12 @@ from as608_driver import PyFingerprint, FINGERPRINT_CHARBUFFER1, FINGERPRINT_CHA
 import hashlib
 
 class FingerPrint:
-    def __init__(self, port='/dev/ttyS0', baudrate=57600, password=0xFFFFFFFF, address=0x00000000):
+    def __init__(self, lcd, port='/dev/ttyS0', baudrate=57600, password=0xFFFFFFFF, address=0x00000000):
         try:
             self.fingerprint = PyFingerprint(port, baudrate, password, address)
+
+            self.lcd = lcd 
+
             if not self.fingerprint.verifyPassword():
                 raise ValueError('The given fingerprint sensor password is wrong!')
         except Exception as e:
@@ -22,9 +25,12 @@ class FingerPrint:
     def enroll(self):
         try:
             print('Waiting for finger...')
+            self.lcd.lcd_clear()
+            self.lcd.lcd_display_string('Waiting for finger...', 1, 0)
             
             # Wait for a finger to be read
             while not self.fingerprint.readImage():
+                self.lcd.lcd_clear()
                 pass
 
             # Convert read image to characteristics and store it in charbuffer 1
@@ -36,9 +42,11 @@ class FingerPrint:
 
             if positionNumber >= 0:
                 print('Template already exists at position #' + str(positionNumber))
+                self.lcd.lcd_display_string('Template already exists at position #' + str(positionNumber), 1, 0)
                 return
 
             print('Remove finger...')
+            self.lcd.lcd_display_string('Remove finger...', 1, 0)
             sleep(2)
 
             print('Waiting for the same finger again...')
