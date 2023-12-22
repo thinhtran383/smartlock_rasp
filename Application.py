@@ -3,8 +3,15 @@ from modules import I2C_LCD_driver
 from modules.keypad_module import Keypad
 from modules.led_module import LEDController
 
+from modules.as608_driver import PyFingerprint
+from modules.as608_driver import FINGERPRINT_CHARBUFFER1
+from modules.as608_driver import FINGERPRINT_CHARBUFFER2
+
 
 import time
+
+
+
 
 lcd = I2C_LCD_driver.lcd()
 row_pins = [17, 27, 22, 5]
@@ -22,6 +29,11 @@ enteringPassword = False
 buffer = ''
 password = '3897'
 keyInput = '';
+
+
+
+lcd = I2C_LCD_driver.lcd()
+
 
 
 
@@ -51,6 +63,8 @@ while True:
                 lcd.lcd_display_string('Password wrong', 1, 0)
                 time.sleep(3)
                 lcd.lcd_display_string('Input password: ', 1, 0)
+                
+                
     if waitingForInput and key != 'None':
             keyInput += '*'
             lcd.lcd_display_string(keyInput[1:],2,0)
