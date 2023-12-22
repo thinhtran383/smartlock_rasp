@@ -6,6 +6,7 @@ sys.path.append('/home/thinhtran/smartlock/modules')
 
 from time import sleep
 from as608_driver import PyFingerprint, FINGERPRINT_CHARBUFFER1, FINGERPRINT_CHARBUFFER2
+import hashlib
 
 class FingerPrint:
     def __init__(self, port='/dev/ttyS0', baudrate=57600, password=0xFFFFFFFF, address=0x00000000):
@@ -66,6 +67,35 @@ class FingerPrint:
             print('Exception message: ' + str(e))
             exit(1)
 
+    def detect(self):
+        try:
+            print('Waiting for finger...')
+
+            while(self.fingerprint.readImage() == False):
+                pass
+
+            self.fingerprint.convertImage(FINGERPRINT_CHARBUFFER1)
+
+            result = self.fingerprint.searchTemplate()
+
+            positionNumber = result[0]
+            accuracyScore = result[1]
+
+            if(positionNumber == -1):
+                print('Match not found!')
+                exit(0)
+            
+            else:
+                print('Found template at position #' + str(positionNumber))
+                print('The accuracyScore is: ' + str(accuracyScore))
+            
+            self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
+
+            characterics = str(self.fingerprint.downloadCharacteristics(FINGERPRINT_CHARBUFFER1)).encode('utf-8')
+            print('SHA-2: ' + hashlib.sha256(characterics).hexdigest())
+        except Exception as e:
+            print('Operation failed')
+            print('Exception message: ' + str(e))
 # Example usage:
 #fingerprint_enroller = FingerprintEnrollment()
 #fingerprint_enroller.enroll()
