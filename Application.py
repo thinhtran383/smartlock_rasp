@@ -17,6 +17,8 @@ col_pins = [23, 24, 25, 16]
 lcd = I2C_LCD_driver.lcd()
 finger = FingerPrint(lcd)
 
+finger.enroll()
+
 led = LEDController()
 
 keypad = Keypad(row_pins, col_pins)
