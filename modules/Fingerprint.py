@@ -23,9 +23,9 @@ class FingerPrint:
             exit(1)
 
     def enroll(self):
+        self.lcd.lcd_clear()
         try:
             print('Waiting for finger...')
-            self.lcd.lcd_clear()
             self.lcd.lcd_display_string('Waiting for finger...', 1, 0)
             
             # Wait for a finger to be read
