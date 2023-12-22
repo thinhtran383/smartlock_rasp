@@ -7,7 +7,7 @@ from modules import I2C_LCD_driver
 from modules.keypad_module import Keypad
 from modules.led_module import LEDController
 
-from modules.Fingerprint import FingerprintEnrollment
+from modules.Fingerprint import FingerPrint
 
 import time
 
@@ -15,7 +15,7 @@ import time
 
 
 lcd = I2C_LCD_driver.lcd()
-finger = FingerprintEnrollment()
+finger = FingerPrint()
 row_pins = [17, 27, 22, 5]
 col_pins = [23, 24, 25, 16]
 
