@@ -1,5 +1,11 @@
+import sys
+
+print(sys.path)
+
+sys.path.append('/home/thinhtran/smartlock/modules')
+
 from time import sleep
-from modules.as608_driver import PyFingerprint, FINGERPRINT_CHARBUFFER1, FINGERPRINT_CHARBUFFER2
+from as608_driver import PyFingerprint, FINGERPRINT_CHARBUFFER1, FINGERPRINT_CHARBUFFER2
 
 class FingerprintEnrollment:
     def __init__(self, port='/dev/ttyS0', baudrate=57600, password=0xFFFFFFFF, address=0x00000000):
@@ -61,5 +67,5 @@ class FingerprintEnrollment:
             exit(1)
 
 # Example usage:
-fingerprint_enroller = FingerprintEnrollment()
-fingerprint_enroller.enroll()
+#fingerprint_enroller = FingerprintEnrollment()
+#fingerprint_enroller.enroll()

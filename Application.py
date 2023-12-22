@@ -1,12 +1,13 @@
+import sys
+
+sys.path.append('/home/thinhtran/smartlock')
+
 from datetime import datetime
 from modules import I2C_LCD_driver
 from modules.keypad_module import Keypad
 from modules.led_module import LEDController
 
-from modules.as608_driver import PyFingerprint
-from modules.as608_driver import FINGERPRINT_CHARBUFFER1
-from modules.as608_driver import FINGERPRINT_CHARBUFFER2
-
+from modules.Fingerprint import FingerprintEnrollment
 
 import time
 
@@ -14,8 +15,10 @@ import time
 
 
 lcd = I2C_LCD_driver.lcd()
+finger = FingerprintEnrollment()
 row_pins = [17, 27, 22, 5]
 col_pins = [23, 24, 25, 16]
+
 
 
 keypad = Keypad(row_pins, col_pins)
