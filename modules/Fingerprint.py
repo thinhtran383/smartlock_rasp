@@ -22,7 +22,7 @@ class FingerPrint:
             print('Exception message: ' + str(e))
             exit(1)
 
-    def enroll(self):
+    def enrollFinger(self):
         self.lcd.lcd_clear()
         try:
             print('Waiting for finger...')
@@ -75,7 +75,7 @@ class FingerPrint:
             print('Exception message: ' + str(e))
             exit(1)
 
-    def detect(self):
+    def detectFinger(self):
         try:
             print('Waiting for finger...')
 
@@ -104,6 +104,16 @@ class FingerPrint:
         except Exception as e:
             print('Operation failed')
             print('Exception message: ' + str(e))
+    
+    def deleteFinger(self):
+        try:
+            positionNumber = input('Please enter the template position you want to delete: ')
+            positionNumber = int(positionNumber)
+
+            if(self.fingerprint.deleteTemplate(positionNumber) == True):
+                print('Template deleted')
+        except Exception as e:
+            print('Exception message: '+ str(e))
 # Example usage:
 #fingerprint_enroller = FingerprintEnrollment()
 #fingerprint_enroller.enroll()
