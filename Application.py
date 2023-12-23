@@ -21,6 +21,7 @@ finger.enroll()
 
 led = LEDController()
 
+
 keypad = Keypad(row_pins, col_pins)
 
 
@@ -33,7 +34,7 @@ password = '3897'
 keyInput = '';
 
 
-lcd = I2C_LCD_driver.lcd()
+
 
 
 while True:
