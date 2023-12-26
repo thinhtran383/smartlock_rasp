@@ -55,6 +55,7 @@ while True:
     elif key == 'None':
         if not waitingForInput:  # Only detect finger when not waiting for input
             finger.detectFinger()
+            finger.stop()
 
     if waitingForInput and key != 'None':
         keyInput += '*'
