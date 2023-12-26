@@ -125,7 +125,7 @@ class FingerPrint:
             print('Exception message: '+ str(e))
             
     def stop(self):
-        self.fingerprint.close()
+        exit(1)
 # Example usage:
 #fingerprint_enroller = FingerPrint(lcd)
 #fingerprint_enroller.detectFinger()
