@@ -5,6 +5,7 @@ from modules.keypad_module import Keypad
 from modules.led_module import LEDController
 from modules.Fingerprint import FingerPrint
 import time
+import threading
 
 row_pins = [17, 27, 22, 5]
 col_pins = [23, 24, 25, 16]
@@ -22,6 +23,17 @@ buffer = ''
 password = '3897'
 keyInput = ''
 
+def fingerprint_thread():
+    while True:
+        finger.detectFinger()
+        
+
+finger_thread = threading.Thread(target=fingerprint_thread, daemon=True)
+finger_thread.start()
+
+
+
+
 while True:
     key = str(keypad.get_key())
 
@@ -33,8 +45,6 @@ while True:
             enteringPassword = True
             buffer = ''
             keyInput = ''
-            # Stop fingerprint detection temporarily
-            finger.stop()
         elif key == 'B' and waitingForInput:
             waitingForInput = False
             lcd.lcd_clear()
@@ -49,15 +59,8 @@ while True:
                 lcd.lcd_display_string('Password wrong', 1, 0)
                 time.sleep(3)
                 lcd.lcd_display_string('Input password: ', 1, 0)
-            # Resume fingerprint detection
-            finger.detectFinger()
-        elif key == 'C' and waitingForInput:
-            if buffer[1:] == password:
-                finger.enrollFinger()
+            
                 
-    elif key == 'None':
-        if not waitingForInput:  # Only detect finger when not waiting for inpu
-            finger.detectFinger()
 
     if waitingForInput and key != 'None':
         keyInput += '*'
