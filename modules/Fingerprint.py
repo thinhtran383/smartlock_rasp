@@ -123,6 +123,9 @@ class FingerPrint:
                 print('Template deleted')
         except Exception as e:
             print('Exception message: '+ str(e))
+            
+    def stop(self):
+        self.fingerprint.close()
 # Example usage:
 #fingerprint_enroller = FingerPrint(lcd)
 #fingerprint_enroller.detectFinger()
