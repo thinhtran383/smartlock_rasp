@@ -69,7 +69,7 @@ while True:
             if buffer[1:] == password:
                 finger.enrollFinger()
         
-        elif key == 'None':
+    elif key == 'None':
             finger.detectFinger()
                 
             
