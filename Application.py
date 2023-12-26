@@ -66,12 +66,10 @@ while True:
                 lcd.lcd_display_string('Password wrong', 1, 0)
                 time.sleep(3)
                 lcd.lcd_display_string('Input password: ', 1, 0)
-        elif key == 'C' and rightPassword == True:
-            finger.enrollFinger();
-            rightPassword = False
-            
-        elif key == 'C' and rightPassword == False:
-            finger.detectFinger();
+        
+        elif key == 'C' and waitingForInput:
+            if buffer == password:
+                finger.enrollFinger()
             
                 
     if waitingForInput and key != 'None':
