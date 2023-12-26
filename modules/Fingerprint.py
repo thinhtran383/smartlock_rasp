@@ -94,6 +94,8 @@ class FingerPrint:
                 exit(0)
             
             else:
+                self.lcd.lcd_display_string('Remove finger...', 1, 0)
+
                 print('Found template at position #' + str(positionNumber))
                 print('The accuracyScore is: ' + str(accuracyScore))
             

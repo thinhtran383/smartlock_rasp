@@ -17,7 +17,7 @@ col_pins = [23, 24, 25, 16]
 lcd = I2C_LCD_driver.lcd()
 finger = FingerPrint(lcd)
 
-finger.enroll()
+
 
 led = LEDController()
 
@@ -25,14 +25,15 @@ led = LEDController()
 keypad = Keypad(row_pins, col_pins)
 
 
+finger.deleteFinger()
 
 waitingForInput = False
 enteringPassword = False
+rightPassword = False
 
 buffer = ''
 password = '3897'
 keyInput = '';
-
 
 
 
@@ -55,20 +56,27 @@ while True:
             lcd.lcd_clear()
             if password == buffer[1:]:
                 lcd.lcd_display_string('Unlock success', 1, 0)
+                
                 led.ledOn()
                 time.sleep(3)
                 led.ledOff()
                 lcd.lcd_display_string('Input password:',1, 0)
+                rightPassword = True
             else:
                 lcd.lcd_display_string('Password wrong', 1, 0)
                 time.sleep(3)
                 lcd.lcd_display_string('Input password: ', 1, 0)
-                
+        elif key == 'C' and rightPassword == True:
+            finger.enrollFinger();
+            rightPassword = False
+            
+        elif key == 'C' and rightPassword == False:
+            finger.detectFinger();
+            
                 
     if waitingForInput and key != 'None':
             keyInput += '*'
             lcd.lcd_display_string(keyInput[1:],2,0)
-
             buffer += key
             print('Buffer: ' + buffer)
     time.sleep(0.1)
