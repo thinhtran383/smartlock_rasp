@@ -6,7 +6,10 @@ sys.path.append('/home/thinhtran/smartlock/modules')
 
 from time import sleep
 from as608_driver import PyFingerprint, FINGERPRINT_CHARBUFFER1, FINGERPRINT_CHARBUFFER2
+from led_module import LEDController
 import hashlib
+
+led = LEDController()
 
 class FingerPrint:
     def __init__(self, lcd, port='/dev/ttyS0', baudrate=57600, password=0xFFFFFFFF, address=0x00000000):
@@ -91,13 +94,17 @@ class FingerPrint:
 
             if(positionNumber == -1):
                 print('Match not found!')
-                exit(0)
+                
             
             else:
                 self.lcd.lcd_display_string('Remove finger...', 1, 0)
 
                 print('Found template at position #' + str(positionNumber))
                 print('The accuracyScore is: ' + str(accuracyScore))
+                led.ledOn()
+                sleep(3)
+                led.ledOff()
+                
             
             self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
 
@@ -117,5 +124,5 @@ class FingerPrint:
         except Exception as e:
             print('Exception message: '+ str(e))
 # Example usage:
-#fingerprint_enroller = FingerprintEnrollment()
-#fingerprint_enroller.enroll()
+#fingerprint_enroller = FingerPrint(lcd)
+#fingerprint_enroller.detectFinger()

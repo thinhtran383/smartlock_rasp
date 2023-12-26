@@ -25,7 +25,6 @@ led = LEDController()
 keypad = Keypad(row_pins, col_pins)
 
 
-finger.deleteFinger()
 
 waitingForInput = False
 enteringPassword = False
@@ -39,7 +38,6 @@ keyInput = '';
 
 
 while True:
-
     key = str(keypad.get_key())
 
     if key != 'None':
@@ -68,8 +66,12 @@ while True:
                 lcd.lcd_display_string('Input password: ', 1, 0)
         
         elif key == 'C' and waitingForInput:
-            if buffer == password:
+            if buffer[1:] == password:
                 finger.enrollFinger()
+        
+        elif key == 'None':
+            finger.detectFinger()
+                
             
                 
     if waitingForInput and key != 'None':
@@ -78,3 +80,5 @@ while True:
             buffer += key
             print('Buffer: ' + buffer)
     time.sleep(0.1)
+    
+ 
