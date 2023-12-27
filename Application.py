@@ -42,6 +42,9 @@ def currentTime():
 
 
 def fingerPrintThread():
+    global stopFingerThread
+    global enroll_finger_flag
+    
     while not stopFingerThread:
         if enroll_finger_flag:
             stopFingerThread = True
@@ -122,5 +125,4 @@ passcode_thread = threading.Thread(target=passcodeThread, daemon=True)
 passcode_thread.start()
 
 
-while True:
-    pass
+
