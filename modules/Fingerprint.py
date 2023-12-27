@@ -12,11 +12,11 @@ import hashlib
 led = LEDController()
 
 class FingerPrint:
-    def __init__(self, lcd, port='/dev/ttyS0', baudrate=57600, password=0xFFFFFFFF, address=0x00000000):
+    def __init__(self, port='/dev/ttyS0', baudrate=57600, password=0xFFFFFFFF, address=0x00000000):
         try:
             self.fingerprint = PyFingerprint(port, baudrate, password, address)
 
-            self.lcd = lcd 
+            
 
             if not self.fingerprint.verifyPassword():
                 raise ValueError('The given fingerprint sensor password is wrong!')
@@ -26,14 +26,14 @@ class FingerPrint:
             exit(1)
 
     def enrollFinger(self):
-        self.lcd.lcd_clear()
+       
         try:
             print('Waiting for finger...')
-            self.lcd.lcd_display_string('Waiting for finger...', 1, 0)
+        
             
             # Wait for a finger to be read
             while not self.fingerprint.readImage():
-                self.lcd.lcd_clear()
+               
                 pass
 
             # Convert read image to characteristics and store it in charbuffer 1
@@ -45,11 +45,9 @@ class FingerPrint:
 
             if positionNumber >= 0:
                 print('Template already exists at position #' + str(positionNumber))
-                self.lcd.lcd_display_string('Template already exists at position #' + str(positionNumber), 1, 0)
                 return
 
             print('Remove finger...')
-            self.lcd.lcd_display_string('Remove finger...', 1, 0)
             sleep(2)
 
             print('Waiting for the same finger again...')
@@ -72,7 +70,10 @@ class FingerPrint:
             positionNumber = self.fingerprint.storeTemplate()
             print('Finger enrolled successfully!')
             print('New template position #' + str(positionNumber))
-
+            
+            self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
+            characterics = str(self.fingerprint.downloadCharacteristics(FINGERPRINT_CHARBUFFER1)).encode('utf-8')
+            print('SHA-2: ' + hashlib.sha256(characterics).hexdigest())
         except Exception as e:
             print('Operation failed!')
             print('Exception message: ' + str(e))
@@ -97,7 +98,7 @@ class FingerPrint:
                 
             
             else:
-                self.lcd.lcd_display_string('Remove finger...', 1, 0)
+                print('Remove finger...')
 
                 print('Found template at position #' + str(positionNumber))
                 print('The accuracyScore is: ' + str(accuracyScore))
@@ -107,7 +108,7 @@ class FingerPrint:
                 
             
             self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
-
+            
             characterics = str(self.fingerprint.downloadCharacteristics(FINGERPRINT_CHARBUFFER1)).encode('utf-8')
             print('SHA-2: ' + hashlib.sha256(characterics).hexdigest())
         except Exception as e:
@@ -126,6 +127,10 @@ class FingerPrint:
             
     def stop(self):
         exit(1)
+    
+    def deleteAllTemplate(self):
+        self.fingerprint.clearDatabase()
 # Example usage:
-#fingerprint_enroller = FingerPrint(lcd)
-#fingerprint_enroller.detectFinger()
+#fingerprint_enroller = FingerPrint()
+#fingerprint_enroller.deleteAllTemplate()
+#fingerprint_enroller.enrollFinger()

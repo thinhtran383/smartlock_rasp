@@ -13,17 +13,19 @@ row_pins = [17, 27, 22, 5]
 col_pins = [23, 24, 25, 16]
 
 lcd = I2C_LCD_driver.lcd()
-finger = FingerPrint(lcd)
+finger = FingerPrint()
 led = LEDController()
 keypad = Keypad(row_pins, col_pins)
 
 waitingForInput = True
-enteringPassword = False
-rightPassword = False
+showDatetime = True
+
+stopFingerThread = False
 
 buffer = ''
 password = '3897'
 keyInput = ''
+
 
 
 def currentDate():
@@ -45,10 +47,9 @@ def currentTime():
     return f'{formattedTime}'
 
 def fingerPrintThread():
-    while True:
+    while not stopFingerThread:
         finger.detectFinger()
-        
-
+    
 finger_thread = threading.Thread(target=fingerPrintThread, daemon=True)
 finger_thread.start()
 
@@ -59,16 +60,22 @@ def passcodeThread():
     global buffer
     global waitingForInput
     global password
+    global showDatetime
+    global stopFingerThread
     
     
     
     while True:
-        lcd.lcd_display_string('Date: ' + currentDate(), 1, 0)
-        lcd.lcd_display_string(currentTime(),2, 6)
+        if showDatetime:
+            lcd.lcd_display_string('Date: ' + currentDate(), 1, 0)
+            lcd.lcd_display_string(currentTime(),2, 6)
+        
         key = str(keypad.get_key())
        
         if waitingForInput and key != 'None' and key != 'B':
+            showDatetime = False
             lcd.lcd_clear()
+            
             lcd.lcd_display_string('Input password: ', 1, 0)
             keyInput += '*'
             lcd.lcd_display_string(keyInput, 2, 0)
@@ -84,7 +91,19 @@ def passcodeThread():
                     
                     keyInput = ''
                     buffer = ''
-                
+                    showDatetime = True
+                elif password + '#' == buffer:
+                    lcd.lcd_clear()
+                    stopFingerThread = True
+                    finger_thread.join()
+                    print('fingerThread has stopped')
+                    
+                    finger.enrollFinger()
+                    
+                    stopFingerThread = False
+                    
+                    keyInput = ''
+                    buffer = ''
                 else:
                     lcd.lcd_clear()
                     lcd.lcd_display_string('Wrong password', 1, 0)
@@ -93,6 +112,10 @@ def passcodeThread():
                     
                     keyInput = ''
                     buffer = ''
+                
+                    showDatetime = True
+                
+                    
         if key == 'C' and waitingForInput:
             keyInput = ''
             buffer = ''
