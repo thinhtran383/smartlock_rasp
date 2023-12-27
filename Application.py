@@ -26,24 +26,20 @@ buffer = ''
 password = '3897'
 keyInput = ''
 
+lcd_lock = threading.Lock()
+
 
 
 def currentDate():
     currentTime = datetime.now()
-    
     dateFormat = '%d-%m-%y'
-    
     formattedDate = currentTime.strftime(dateFormat)
-    
     return f'{formattedDate}'
 
 def currentTime():
     currentTime = datetime.now()
-    
     timeFormat = '%H:%M:%S'
-    
     formattedTime = currentTime.strftime(timeFormat)
-    
     return f'{formattedTime}'
 
 def fingerPrintThread():
@@ -51,7 +47,11 @@ def fingerPrintThread():
     global enroll_finger_flag
     
     while not stopFingerThread:
-        finger.detectFinger()   
+        if(finger.detectFinger()):
+            with lcd_lock:
+                lcd.lcd_clear()
+                lcd.lcd_display_string('Finger detected', 1, 0)
+                time.sleep(1.5)
         
 finger_thread = threading.Thread(target=fingerPrintThread, daemon=True)
 finger_thread.start()
@@ -65,8 +65,6 @@ def passcodeThread():
     global password
     global showDatetime
     global stopFingerThread
-    
-    
     
     while True:
         if showDatetime:
