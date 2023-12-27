@@ -32,6 +32,8 @@ finger_thread = threading.Thread(target=fingerPrintThread, daemon=True)
 finger_thread.start()
 
 def passcodeThread():
+    global keyInput
+    global buffer
     while True:
         key = str(keypad.get_key())
         lcd.lcd_display_string('Input password: ', 1, 0)
