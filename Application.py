@@ -5,6 +5,7 @@ from modules.keypad_module import Keypad
 from modules.led_module import LEDController
 from modules.Fingerprint import FingerPrint
 from datetime import datetime
+
 import time
 import threading
 
@@ -20,46 +21,41 @@ waitingForInput = True
 showDatetime = True
 
 stopFingerThread = False
-enroll_finger_flag = False
 
 buffer = ''
 password = '3897'
 keyInput = ''
 
 
+
 def currentDate():
     currentTime = datetime.now()
+    
     dateFormat = '%d-%m-%y'
+    
     formattedDate = currentTime.strftime(dateFormat)
+    
     return f'{formattedDate}'
-
 
 def currentTime():
     currentTime = datetime.now()
+    
     timeFormat = '%H:%M:%S'
+    
     formattedTime = currentTime.strftime(timeFormat)
+    
     return f'{formattedTime}'
-
 
 def fingerPrintThread():
     global stopFingerThread
     global enroll_finger_flag
     
     while not stopFingerThread:
-        if enroll_finger_flag:
-            stopFingerThread = True
-            finger_thread.join()
-            print('fingerThread has stopped')
-            finger.enrollFinger()
-            enroll_finger_flag = False
-            stopFingerThread = False
-            finger_thread.start()
-        else:
-            finger.detectFinger()
-
-
+        finger.detectFinger()   
+        
 finger_thread = threading.Thread(target=fingerPrintThread, daemon=True)
 finger_thread.start()
+
 
 
 def passcodeThread():
@@ -69,19 +65,20 @@ def passcodeThread():
     global password
     global showDatetime
     global stopFingerThread
-    global enroll_finger_flag
-
+    
+    
+    
     while True:
         if showDatetime:
             lcd.lcd_display_string('Date: ' + currentDate(), 1, 0)
-            lcd.lcd_display_string(currentTime(), 2, 6)
-
+            lcd.lcd_display_string(currentTime(),2, 6)
+        
         key = str(keypad.get_key())
-
+       
         if waitingForInput and key != 'None' and key != 'B':
             showDatetime = False
             lcd.lcd_clear()
-
+            
             lcd.lcd_display_string('Input password: ', 1, 0)
             keyInput += '*'
             lcd.lcd_display_string(keyInput, 2, 0)
@@ -94,13 +91,20 @@ def passcodeThread():
                     lcd.lcd_display_string('Unlock success', 1, 0)
                     time.sleep(1.5)
                     lcd.lcd_clear()
-
+                    
                     keyInput = ''
                     buffer = ''
                     showDatetime = True
                 elif password + '#' == buffer:
                     lcd.lcd_clear()
-                    enroll_finger_flag = True
+                    stopFingerThread = True
+                    finger_thread.join()
+                    print('fingerThread has stopped')
+                    
+                    finger.enrollFinger()
+                    
+                    stopFingerThread = False
+                    
                     keyInput = ''
                     buffer = ''
                 else:
@@ -108,19 +112,19 @@ def passcodeThread():
                     lcd.lcd_display_string('Wrong password', 1, 0)
                     time.sleep(1.5)
                     lcd.lcd_clear()
-
+                    
                     keyInput = ''
                     buffer = ''
-
+                
                     showDatetime = True
-
+                
+                    
         if key == 'C' and waitingForInput:
             keyInput = ''
             buffer = ''
             lcd.lcd_clear()
-            lcd.lcd_display_string('Input password: ', 1, 0)
-
-
+            lcd.lcd_display_string('Input password: ',1, 0)
+            
 passcode_thread = threading.Thread(target=passcodeThread, daemon=True)
 passcode_thread.start()
 

@@ -17,7 +17,7 @@ class FingerPrint:
             self.fingerprint = PyFingerprint(port, baudrate, password, address)
 
             
-
+            
             if not self.fingerprint.verifyPassword():
                 raise ValueError('The given fingerprint sensor password is wrong!')
         except Exception as e:
@@ -102,9 +102,10 @@ class FingerPrint:
 
                 print('Found template at position #' + str(positionNumber))
                 print('The accuracyScore is: ' + str(accuracyScore))
-                led.ledOn()
-                sleep(3)
-                led.ledOff()
+                
+                return True
+                
+                sleep(2)
                 
             
             self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
@@ -114,6 +115,9 @@ class FingerPrint:
         except Exception as e:
             print('Operation failed')
             print('Exception message: ' + str(e))
+            return False
+        
+            
     
     def deleteFinger(self):
         try:
@@ -133,4 +137,4 @@ class FingerPrint:
 # Example usage:
 #fingerprint_enroller = FingerPrint()
 #fingerprint_enroller.deleteAllTemplate()
-#fingerprint_enroller.enrollFinger()
+#fingerprint_enroller.detectFinger()
