@@ -42,7 +42,7 @@ def passcodeThread():
             print('Buffer: ' + buffer)
 
 passcode_thread = threading.Thread(target=passcodeThread, daemon=True)
-
+passcode_thread.start()
 
 # while True:
 #     key = str(keypad.get_key())
