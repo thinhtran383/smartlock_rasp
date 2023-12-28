@@ -47,7 +47,16 @@ def fingerPrintThread():
         if finger.detectFinger():
             with lcd_lock:
                 lcd.lcd_clear()
-                lcd.lcd_display_string('Finger detected', 1, 0)
+                lcd.lcd_display_string('Unlock succes', 1, 0)
+                time.sleep(1.5)
+                lcd.lcd_clear()
+        else:
+            with lcd_lock:
+                lcd.lcd_clear()
+                lcd.lcd_display_string('Cannot detect',1, 0)
+                lcd.lcd_display_string(' finger', 2, 0)
+                time.sleep(1.5)
+                lcd.lcd_clear()
 
 finger_thread = threading.Thread(target=fingerPrintThread, daemon=True)
 finger_thread.start()

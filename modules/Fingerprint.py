@@ -100,7 +100,7 @@ class FingerPrint:
                 print('Remove finger...')
                 print('Found template at position #' + str(positionNumber))
                 print('The accuracyScore is: ' + str(accuracyScore))
-                sleep(2)
+                
 
             self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
 
@@ -130,5 +130,4 @@ class FingerPrint:
         self.fingerprint.clearDatabase()
 # Example usage:
 #fingerprint_enroller = FingerPrint()
-#fingerprint_enroller.deleteAllTemplate()
-#fingerprint_enroller.detectFinger()
+#fingerprint_enroller.enrollFinger()
