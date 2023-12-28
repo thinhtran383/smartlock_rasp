@@ -7,7 +7,7 @@ from modules.Fingerprint import FingerPrint
 from datetime import datetime
 
 import time
-import threading
+import multiprocessing
 
 row_pins = [17, 27, 22, 5]
 col_pins = [23, 24, 25, 16]
@@ -17,16 +17,11 @@ finger = FingerPrint()
 led = LEDController()
 keypad = Keypad(row_pins, col_pins)
 
-waitingForInput = True
-showDatetime = True
+lcd_lock = multiprocessing.Lock()
+stopFingerEvent = multiprocessing.Event()
 
-stopFingerThread = False
-
-buffer = ''
 password = '3897'
 keyInput = ''
-
-lcd_lock = threading.Lock()
 
 def currentDate():
     currentTime = datetime.now()
@@ -40,81 +35,61 @@ def currentTime():
     formattedTime = currentTime.strftime(timeFormat)
     return f'{formattedTime}'
 
-def fingerPrintThread():
-    global stopFingerThread
-
-    while not stopFingerThread:
+def fingerPrintDetect(stop_event):
+    while not stop_event.is_set():
         if finger.detectFinger():
             with lcd_lock:
                 lcd.lcd_clear()
                 lcd.lcd_display_string('Finger detected', 1, 0)
 
-finger_thread = threading.Thread(target=fingerPrintThread, daemon=True)
-finger_thread.start()
+finger_detect_process = multiprocessing.Process(target=fingerPrintDetect, args=(stopFingerEvent,))
+finger_detect_process.start()
 
 def passcodeThread():
     global keyInput
-    global buffer
-    global waitingForInput
-    global password
-    global showDatetime
-    global stopFingerThread
 
     while True:
-        if showDatetime:
-            with lcd_lock:
-                lcd.lcd_display_string('Date: ' + currentDate(), 1, 0)
-                lcd.lcd_display_string(currentTime(), 2, 6)
+        with lcd_lock:
+            lcd.lcd_display_string('Date: ' + currentDate(), 1, 0)
+            lcd.lcd_display_string(currentTime(), 2, 6)
 
         key = str(keypad.get_key())
 
-        if waitingForInput and key != 'None' and key != 'B':
-            showDatetime = False
+        if key != 'None' and key != 'B':
             with lcd_lock:
                 lcd.lcd_clear()
                 lcd.lcd_display_string('Input password: ', 1, 0)
                 keyInput += '*'
                 lcd.lcd_display_string(keyInput, 2, 0)
-                buffer += key
-                print('Buffer: ' + buffer)
 
         if key == 'B':
-            if waitingForInput:
-                if password == buffer:
-                    with lcd_lock:
-                        lcd.lcd_clear()
-                        lcd.lcd_display_string('Unlock success', 1, 0)
-                        time.sleep(1.5)
-                        lcd.lcd_clear()
-                    keyInput = ''
-                    buffer = ''
-                    showDatetime = True
-                elif password + '#' == buffer:
-                    with lcd_lock:
-                        lcd.lcd_clear()
-                        stopFingerThread = True
-                        finger_thread.join()
-                        print('fingerThread has stopped')
-                        finger.enrollFinger()
-                    stopFingerThread = False
-                    keyInput = ''
-                    buffer = ''
-                else:
-                    with lcd_lock:
-                        lcd.lcd_clear()
-                        lcd.lcd_display_string('Wrong password', 1, 0)
-                        time.sleep(1.5)
-                        lcd.lcd_clear()
-                    keyInput = ''
-                    buffer = ''
-                    showDatetime = True
-
-        if key == 'C' and waitingForInput:
-            with lcd_lock:
+            if password == keyInput:
+                with lcd_lock:
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Unlock success', 1, 0)
+                    time.sleep(1.5)
+                    lcd.lcd_clear()
                 keyInput = ''
-                buffer = ''
-                lcd.lcd_clear()
-                lcd.lcd_display_string('Input password: ', 1, 0)
+            else:
+                with lcd_lock:
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Wrong password', 1, 0)
+                    time.sleep(1.5)
+                    lcd.lcd_clear()
+                keyInput = ''
 
-passcode_thread = threading.Thread(target=passcodeThread, daemon=True)
-passcode_thread.start()
+        time.sleep(0.1)
+
+# Sử dụng multiprocessing.Process để tạo một quá trình mới cho passcodeThread
+passcode_process = multiprocessing.Process(target=passcodeThread)
+passcode_process.start()
+
+try:
+    # Chờ để chương trình chạy
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    # Khi nhấn Ctrl+C, kết thúc chương trình
+    stopFingerEvent.set()  # Đặt sự kiện để dừng quá trình fingerPrintDetect
+    finger_detect_process.join()
+    passcode_process.join()
