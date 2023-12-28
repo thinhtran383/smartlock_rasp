@@ -59,7 +59,7 @@ def fingerPrintThread():
                 lcd.lcd_clear()
 
 finger_thread = threading.Thread(target=fingerPrintThread, daemon=True)
-finger_thread.start()
+
 
 def passcodeThread():
     global keyInput
@@ -126,6 +126,19 @@ def passcodeThread():
                 lcd.lcd_display_string('Input password: ', 1, 0)
 
 passcode_thread = threading.Thread(target=passcodeThread, daemon=True)
-passcode_thread.start()
 
 
+
+
+try:
+    while True:
+        if not passcode_thread.is_alive():
+            passcode_thread = threading.Thread(target=passcodeThread, daemon=True)
+            passcode_thread.start()
+        if not finger_thread.is_alive():
+            finger_thread = threading.Thread(target=fingerPrintThread, daemon=True)
+            finger_thread.start()
+except KeyboardInterrupt:
+    lcd.lcd_clear()
+    sys.exit()
+    
