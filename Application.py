@@ -127,5 +127,3 @@ def passcodeThread():
 
 passcode_thread = threading.Thread(target=passcodeThread, daemon=True)
 passcode_thread.start()
-
-
