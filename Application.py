@@ -41,9 +41,7 @@ def currentTime():
     return f'{formattedTime}'
 
 def fingerPrintThread():
-    global stopFingerThread
-
-    while not stopFingerThread:
+    while True:
         if finger.detectFinger():
             with lcd_lock:
                 lcd.lcd_clear()
@@ -98,16 +96,6 @@ def passcodeThread():
                     keyInput = ''
                     buffer = ''
                     showDatetime = True
-                elif password + '#' == buffer:
-                    with lcd_lock:
-                        lcd.lcd_clear()
-                        stopFingerThread = True
-                        finger_thread.join()
-                        print('fingerThread has stopped')
-                        finger.enrollFinger()
-                    stopFingerThread = False
-                    keyInput = ''
-                    buffer = ''
                 else:
                     with lcd_lock:
                         lcd.lcd_clear()
@@ -127,3 +115,4 @@ def passcodeThread():
 
 passcode_thread = threading.Thread(target=passcodeThread, daemon=True)
 passcode_thread.start()
+    
