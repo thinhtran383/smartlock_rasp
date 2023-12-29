@@ -38,7 +38,7 @@ def currentTime():
     formattedTime = currentTime.strftime(timeFormat)
     return f'{formattedTime}'
 
-def fingerPrintProcess(lock):
+def fingerPrintDetectProcess(lock):
     while True:
         if finger.detectFinger():
             with lock:
@@ -53,6 +53,9 @@ def fingerPrintProcess(lock):
                 lcd.lcd_display_string(' finger', 2, 0)
                 time.sleep(1.5)
                 lcd.lcd_clear()
+                
+def fingerPrintEnrollProcess():
+    finger.enrollFinger()
 
 def passcodeThread(lock):
     global keyInput
@@ -90,15 +93,20 @@ def passcodeThread(lock):
                     keyInput = ''
                     buffer = ''
                     showDatetime = True
-                else:
-                    with lock:
-                        lcd.lcd_clear()
-                        lcd.lcd_display_string('Wrong password', 1, 0)
-                        time.sleep(1.5)
-                        lcd.lcd_clear()
-                    keyInput = ''
-                    buffer = ''
-                    showDatetime = True
+            elif password + '#' == buffer:
+                    enrollFingerProcess = multiprocessing.Process(target=fingerPrintEnrollProcess)
+                    enrollFingerProcess.start()
+                    enrollFingerProcess.join()
+                
+            else:
+                with lock:
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Wrong password', 1, 0)
+                    time.sleep(1.5)
+                    lcd.lcd_clear()
+                keyInput = ''
+                buffer = ''
+                showDatetime = True
 
         if key == 'C' and waitingForInput:
             with lock:
@@ -108,7 +116,7 @@ def passcodeThread(lock):
                 lcd.lcd_display_string('Input password: ', 1, 0)
 
 if __name__ == '__main__':
-    finger_process = multiprocessing.Process(target=fingerPrintProcess, args=(lcd_lock,))
+    finger_process = multiprocessing.Process(target=fingerPrintDetectProcess, args=(lcd_lock,))
     finger_process.start()
 
     passcode_process = multiprocessing.Process(target=passcodeThread, args=(lcd_lock,))
