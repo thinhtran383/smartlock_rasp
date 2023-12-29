@@ -84,7 +84,6 @@ def passcodeThread(lock, enroll_completed_event):
     global showDatetime
 
     while True:
-        fingerPrintService()
         if showDatetime:
             with lock:
                 lcd.lcd_display_string('Date: ' + currentDate(), 1, 0)
@@ -135,10 +134,12 @@ def passcodeThread(lock, enroll_completed_event):
 if __name__ == '__main__':
     passcode_process = multiprocessing.Process(target=passcodeThread, args=(lcd_lock, enroll_completed_event))
     passcode_process.start()
-
+    
+    finger =  multiprocessing.Process(target=fingerPrintService)
+    finger.start()
     try:
         while True:
-            fingerPrintService()
+            time.sleep(1)
     except KeyboardInterrupt:
         passcode_process.terminate()
         lcd.lcd_clear()
