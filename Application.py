@@ -5,7 +5,7 @@ from modules.keypad_module import Keypad
 from modules.led_module import LEDController
 from modules.Fingerprint import FingerPrint
 from datetime import datetime
-import threading
+import multiprocessing
 import time
 
 row_pins = [17, 27, 22, 5]
@@ -18,13 +18,14 @@ keypad = Keypad(row_pins, col_pins)
 
 waitingForInput = True
 showDatetime = True
-pauseProcess = False
+
+pauseProcess = multiprocessing.Value('b', False)
 
 buffer = ''
 password = '3897'
 keyInput = ''
 
-lcd_lock = threading.Lock()
+lcd_lock = multiprocessing.Lock()
 
 def currentDate():
     currentTime = datetime.now()
@@ -40,7 +41,7 @@ def currentTime():
 
 def fingerPrintDetect():
     global pauseProcess
-    while not pauseProcess:
+    while not pauseProcess.value:
         if finger.detectFinger():
             with lcd_lock:
                 lcd.lcd_clear()
@@ -94,15 +95,12 @@ def passcodeThread():
                     showDatetime = True
                 elif password + '#' == buffer:
                     print('Enroll mode')
-                    pauseProcess = True
+                    with lcd_lock:
+                        lcd.lcd_clear()
+                        lcd.lcd_display_string('Enroll mode', 1, 0)
+                    pauseProcess.value = True
                     keyInput = ''
                     buffer = ''
-                elif password + '*' == buffer:
-                    print('detect mode')
-                    pauseProcess = False
-                    keyInput = ''
-                    buffer = ''
-                
                 else:
                     with lcd_lock:
                         lcd.lcd_clear()
@@ -121,18 +119,18 @@ def passcodeThread():
                 lcd.lcd_display_string('Input password: ', 1, 0)
 
 if __name__ == '__main__':
-    passcode_thread = threading.Thread(target=passcodeThread)
-    passcode_thread.start()
+    passcode_process = multiprocessing.Process(target=passcodeThread)
+    passcode_process.start()
 
-    fingerPrint_thread = threading.Thread(target=fingerPrintDetect)
-    fingerPrint_thread.start()
+    fingerPrint_process = multiprocessing.Process(target=fingerPrintDetect)
+    fingerPrint_process.start()
     
     try:
         while True:
-            time.sleep(1)
+            time.sleep(2)
     except KeyboardInterrupt:
-        pauseProcess = True
-        passcode_thread.join()
-        fingerPrint_thread.join()
+        pauseProcess.value = True
+        passcode_process.join()
+        fingerPrint_process.join()
         lcd.lcd_clear()
         sys.exit()
