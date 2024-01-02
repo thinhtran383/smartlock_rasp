@@ -25,6 +25,7 @@ password = '3897'
 keyInput = ''
 
 lcd_lock = threading.Lock()
+finger_lock = threading.Lock()
 
 def currentDate():
     currentTime = datetime.now()
@@ -45,22 +46,26 @@ def fingerPrintDetect():
     while True:
         time.sleep(1)
         if not pauseProcess:
-            if finger.detectFinger():
-                with lcd_lock:
-                    lcd.lcd_clear()
-                    lcd.lcd_display_string('Unlock success', 1, 0)
-                    time.sleep(1.5)
-                    lcd.lcd_clear()
-                    showDatetime = True
-            else:
-                with lcd_lock:
-                    lcd.lcd_clear()
-                    lcd.lcd_display_string('Cannot detect', 1, 0)
-                    lcd.lcd_display_string(' finger', 2, 0)
-                    time.sleep(1.5)
-                    lcd.lcd_clear()
-                    showDateTime = True
-        time.sleep(1) 
+            with finger_lock:
+                if finger.detectFinger():
+                    with lcd_lock:
+                        lcd.lcd_clear()
+                        lcd.lcd_display_string('Unlock success', 1, 0)
+                        time.sleep(1.5)
+                        lcd.lcd_clear()
+                        showDatetime = True
+                        
+                        
+                else:
+                    with lcd_lock:
+                        lcd.lcd_clear()
+                        lcd.lcd_display_string('Cannot detect', 1, 0)
+                        lcd.lcd_display_string(' finger',2, 0)
+                        time.sleep(1.5)
+                        lcd.lcd_clear()
+                        showDatetime = True
+                        isExisted = False
+                        
 
 def passcodeThread():
     global keyInput
@@ -69,6 +74,7 @@ def passcodeThread():
     global password
     global showDatetime
     global pauseProcess
+
     
     while True:
         if showDatetime:
@@ -101,11 +107,31 @@ def passcodeThread():
                     showDatetime = True
                 elif password + '#' == buffer:
                     print('Enroll mode')
-                    pauseProcess = True
-                    finger.detectFinger(False)
-                    keyInput = ''
-                    buffer = ''
-                    finger.enrollFinger()
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Waiting for', 1, 0)
+                    lcd.lcd_display_string('finger...', 2, 0)
+                    
+                    
+                    with finger_lock:      
+                        keyInput = ''
+                        buffer = ''
+                            
+                        if finger.enrollFinger():
+                            lcd.lcd_clear()
+                            lcd.lcd_display_string('Finger enroll', 1, 0)
+                            lcd.lcd_display_string('success', 2, 0)
+                            time.sleep(1.5)
+                            lcd.lcd_clear()
+                            
+                        else:
+                            lcd.lcd_clear()
+                            lcd.lcd_display_string('Cannot detect', 1, 0)
+                            lcd.lcd_display_string('finger', 2, 0)
+                            time.sleep(1.5)
+                            lcd.lcd_clear()
+                            
+                    showDatetime = True
+                    pauseProcess = False
                     
                 elif password + '*' == buffer:
                     print('detect mode')
@@ -137,12 +163,11 @@ if __name__ == '__main__':
     passcode_thread = threading.Thread(target=passcodeThread)
     passcode_thread.start()
 
-   # fingerPrint_thread = threading.Thread(target=fingerPrintDetect)
-   # fingerPrint_thread.start()
+    fingerPrint_thread = threading.Thread(target=fingerPrintDetect)
+    fingerPrint_thread.start()
     
     try:
         while True:
-            fingerPrintDetect()
             time.sleep(1)
     except KeyboardInterrupt:
         passcode_thread.join()
