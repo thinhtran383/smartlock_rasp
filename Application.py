@@ -20,6 +20,8 @@ waitingForInput = True
 showDatetime = True
 pauseProcess = False
 
+flag: int
+
 
 buffer = ''
 password = '3897'
@@ -43,21 +45,22 @@ def currentTime():
 def fingerPrintDetect():
     global pauseProcess
     global showDatetime
+    global flag
     
     while True:
         time.sleep(1)
         if not pauseProcess:
             with finger_lock:
-                if finger.detectFinger():
+                flag = finger.detectFinger()
+                
+                if flag == 0:
                     with lcd_lock:
                         lcd.lcd_clear()
-                        lcd.lcd_display_string('Unlock success', 1, 0)
+                        lcd.lcd_display_string('Finger exist', 1, 0)
                         time.sleep(1.5)
                         lcd.lcd_clear()
                         showDatetime = True
-                        
-                        
-                else:
+                elif flag == 1:
                     with lcd_lock:
                         lcd.lcd_clear()
                         lcd.lcd_display_string('Cannot detect', 1, 0)
@@ -65,6 +68,31 @@ def fingerPrintDetect():
                         time.sleep(1.5)
                         lcd.lcd_clear()
                         showDatetime = True
+                elif flag == 2:
+                    with lcd_lock:
+                        lcd.lcd_clear()
+                        lcd.lcd_display_string('Unlock success', 1, 0)
+                        time.sleep(1.5)
+                        lcd.lcd_clear()
+                        showDatetime = True        
+                
+                # if finger.detectFinger():
+                    # with lcd_lock:
+                    #     lcd.lcd_clear()
+                    #     lcd.lcd_display_string('Unlock success', 1, 0)
+                    #     time.sleep(1.5)
+                    #     lcd.lcd_clear()
+                    #     showDatetime = True
+                        
+                        
+                # else:
+                #     with lcd_lock:
+                #         lcd.lcd_clear()
+                #         lcd.lcd_display_string('Cannot detect', 1, 0)
+                #         lcd.lcd_display_string(' 1finger',2, 0)
+                #         time.sleep(1.5)
+                #         lcd.lcd_clear()
+                #         showDatetime = True
                         
 
 def passcodeThread():
@@ -74,6 +102,7 @@ def passcodeThread():
     global password
     global showDatetime
     global pauseProcess
+    global flag
 
 
     
@@ -112,40 +141,36 @@ def passcodeThread():
                     lcd.lcd_display_string('Waiting for', 1, 0)
                     lcd.lcd_display_string('finger...', 2, 0)
                     pauseProcess = True
-                    with finger_lock:      
-                        keyInput = ''
-                        buffer = ''
-                        status = finger.enrollFinger()   
-                        if status == 3:
-                            lcd.lcd_clear()
-                            lcd.lcd_display_string('Finger enroll', 1, 0)
-                            lcd.lcd_display_string('success', 2, 0)
-                            time.sleep(1.5)
-                            lcd.lcd_clear()
-                            
-                        elif status == 2:
-                            lcd.lcd_clear()
-                            lcd.lcd_display_string('Cannot detect', 1, 0)
-                            lcd.lcd_display_string('finger 2', 2, 0)
-                            time.sleep(1.5)
-                            lcd.lcd_clear()
-                        elif status == 1:
-                            lcd.lcd_clear()
-                            lcd.lcd_display_string('Finger existed', 1, 0)
-                            time.sleep(1.5)
-                            lcd.lcd_clear()
+                    
+                    
+                    if flag == 2:
+                        pass
+                    else:
+                        with finger_lock:      
+                            keyInput = ''
+                            buffer = ''
+                            status = finger.enrollFinger()   
+                            if status == 3:
+                                lcd.lcd_clear()
+                                lcd.lcd_display_string('Finger enroll', 1, 0)
+                                lcd.lcd_display_string('success', 2, 0)
+                                time.sleep(1.5)
+                                lcd.lcd_clear()
+                                
+                            elif status == 2:
+                                lcd.lcd_clear()
+                                lcd.lcd_display_string('Cannot detect', 1, 0)
+                                lcd.lcd_display_string('finger 2', 2, 0)
+                                time.sleep(1.5)
+                                lcd.lcd_clear()
+                        # elif status == 1:
+                        #     lcd.lcd_clear()
+                        #     lcd.lcd_display_string('Finger existed', 1, 0)
+                        #     time.sleep(1.5)
+                        #     lcd.lcd_clear()
                             
                     showDatetime = True
                     pauseProcess = False
-                    
-                    
-                elif password + '*' == buffer:
-                    print('detect mode')
-                    pauseProcess = False
-                    keyInput = ''
-                    buffer = ''
-                    lcd.lcd_clear()
-                    showDatetime = True
                 
                 else:
                     with lcd_lock:

@@ -27,7 +27,7 @@ class FingerPrint:
         return cls._instance
 
     def __init__(self, port='/dev/ttyS0', baudrate=57600, password=0xFFFFFFFF, address=0x00000000):
-        pass  # Initialize in __new__ to ensure it's done only once
+        pass  
 
     def enrollFinger(self):
         try:
@@ -74,37 +74,44 @@ class FingerPrint:
             print('Exception message: ' + str(e))
             return 2
 
-    def detectFinger(self):
+    def detectFinger(self):  
+        """
+        0: is exist
+        1: cannot detect
+        2: success
+        """       
+        try:
+            print('Waiting for finger...')
+            while not self.fingerprint.readImage():
+                pass
+
+            self.fingerprint.convertImage(FINGERPRINT_CHARBUFFER1)
+
+            result = self.fingerprint.searchTemplate()
+
+            positionNumber = result[0]
+            accuracyScore = result[1]
             
-            try:
-                print('Waiting for finger...')
-                while not self.fingerprint.readImage():
-                    pass
+            if positionNumber >= 0:
+                return 0
 
-                self.fingerprint.convertImage(FINGERPRINT_CHARBUFFER1)
+            if positionNumber == -1:
+                print('Match not found!')
+                return 1
+            else:
+                print('Found template at position #' + str(positionNumber))
+                print('The accuracyScore is: ' + str(accuracyScore))
 
-                result = self.fingerprint.searchTemplate()
+            self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
 
-                positionNumber = result[0]
-                accuracyScore = result[1]
+            characteristics = str(self.fingerprint.downloadCharacteristics(FINGERPRINT_CHARBUFFER1)).encode('utf-8')
+            print('SHA-2: ' + hashlib.sha256(characteristics).hexdigest())
 
-                if positionNumber == -1:
-                    print('Match not found!')
-                    return False
-                else:
-                    print('Found template at position #' + str(positionNumber))
-                    print('The accuracyScore is: ' + str(accuracyScore))
-
-                self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
-
-                characteristics = str(self.fingerprint.downloadCharacteristics(FINGERPRINT_CHARBUFFER1)).encode('utf-8')
-                print('SHA-2: ' + hashlib.sha256(characteristics).hexdigest())
-
-                return True
-            except Exception as e:
-                print('Operation failed')
-                print('Exception message: ' + str(e))
-                return False
+            return 2
+        except Exception as e:
+            print('Operation failed')
+            print('Exception message: ' + str(e))
+            return 1
     
     def deleteFinger(self):
         try:
@@ -121,6 +128,9 @@ class FingerPrint:
     
     def deleteAllTemplate(self):
         self.fingerprint.clearDatabase()
+        
+    def checkExistedFinger(self):
+        
 
 # Example usage:
 #finger = FingerPrint()
