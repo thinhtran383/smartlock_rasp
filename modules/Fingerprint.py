@@ -43,7 +43,7 @@ class FingerPrint:
 
             if positionNumber >= 0:
                 print('Template already exists at position #' + str(positionNumber))
-                return False
+                return 1
 
             print('Remove finger...')
             time.sleep(2)
@@ -57,7 +57,7 @@ class FingerPrint:
 
             if self.fingerprint.compareCharacteristics() == 0:
                 print('Fingers do not match')
-                return False
+                return 2
 
             self.fingerprint.createTemplate()
 
@@ -68,16 +68,16 @@ class FingerPrint:
             self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
             characteristics = str(self.fingerprint.downloadCharacteristics(FINGERPRINT_CHARBUFFER1)).encode('utf-8')
             print('SHA-2: ' + hashlib.sha256(characteristics).hexdigest())
-            return True
+            return 3
         except Exception as e:
             print('Operation failed!')
             print('Exception message: ' + str(e))
-            return False
+            return 2
 
     def detectFinger(self):
+            
             try:
                 print('Waiting for finger...')
-
                 while not self.fingerprint.readImage():
                     pass
 
@@ -124,5 +124,5 @@ class FingerPrint:
 
 # Example usage:
 #finger = FingerPrint()
-#finger.detectFinger()
+#print(finger.enrollFinger())
 
