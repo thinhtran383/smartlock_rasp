@@ -14,13 +14,21 @@ colPins = [23, 24, 25, 16]
 
 lcd = I2C_LCD_driver.lcd()
 keypad = Keypad(rowPins, colPins)
+finger = FingerPrint()
 
 waitingForInput = True
 showDatetime = True
+pauseThread = False
 
 keyInput = ''
 buffer = ''
 rootPassword = '3897'
+
+
+
+condition = threading.Condition()
+lcdLock = threading.Lock()
+
 
 def currentDateTime():
     currentTime = datetime.now()
@@ -41,40 +49,106 @@ def passcode():
         
         
 def checkPasscode(passcode):
-    if passcode == rootPassword:
-        lcd.lcd_clear()
-        lcd.lcd_display_string('Unlock success', 1, 0)
-        time.sleep(1)
-        lcd.lcd_clear()
-    else:
-        lcd.lcd_clear()
-        lcd.lcd_display_string('Password wrong!!', 1, 0)
-        time.sleep(1)
-        lcd.lcd_clear()
+    return passcode == rootPassword
         
+
+def fingerDetect():
+    global pauseThread
+    global showDatetime
+    global buffer
+    global keyInput
+
     
     
+    while True:
+        with condition:
+            while pauseThread:
+                condition.wait()
+            status = finger.detectFinger()
+                
+            if status == 0:
+                with lcdLock:
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Cannot detect', 1, 0)
+                    lcd.lcd_display_string('finger', 2, 0)
+                    time.sleep(1.5)
+                    
+            if status == 1:
+                with lcdLock:
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Unlock success', 1, 0)
+                    time.sleep(1.5)
+                    
+                    
+                    
+            showDatetime = True
+            buffer = ''
+            keyInput = ''
+            
+
 
 if __name__ == '__main__':
-    while True:   
-        pressedKey = passcode()
-        
-        if showDatetime:
-            date, time = currentDateTime()
-            lcd.lcd_display_string('Date: '+ date, 1, 0)
-            lcd.lcd_display_string('Time: ' + time, 2, 0)
-        
-        if pressedKey is not None:
-            showDatetime = False
-            keyInput += pressedKey
-            buffer += '*'
+    fingerThread = threading.Thread(target=fingerDetect)
+    fingerThread.start()
+   
+    try:
+        while True:   
+            pressedKey = passcode()
             
-            lcd.lcd_clear()
-            lcd.lcd_display_string(buffer, 1, 0)
             
-            if keyInput[-1] == 'B':
-                checkPasscode(keyInput[:-1])
+            
+            if showDatetime:
+                date, currentTime = currentDateTime()
+                with lcdLock:
+                    lcd.lcd_display_string('Date: '+ date, 1, 0)
+                    lcd.lcd_display_string('Time: ' + currentTime, 2, 0)
+            
+            if pressedKey is not None:
+                showDatetime = False
+                keyInput += pressedKey
+                buffer += '*'
+                print('keyInput: ' + keyInput)
+                with lcdLock:
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Input passcode:' , 1, 0)
+                    lcd.lcd_display_string(buffer, 2, 0)
+                
+                if keyInput[-1] == 'B': # so sanh ky tu cuoi cung
+                    if checkPasscode(keyInput[:-1]):    
+                        lcd.lcd_clear()
+                        lcd.lcd_display_string('Unlock success', 1, 0)
+                        time.sleep(1.5)
+                        lcd.lcd_clear()
+                        
+                        keyInput =''
+                        buffer = ''
+                        showDatetime = True
+                    else:
+                        lcd.lcd_clear()
+                        lcd.lcd_display_string('Passcode wrong!!!', 1, 0)
+                        time.sleep(1.5)
+                        lcd.lcd_clear()
+                        
+                        keyInput = ''
+                        buffer = ''
+                        showDatetime = True
+                        
+                        
+                
+            if pressedKey == '*' and pressedKey is not None:
+                pauseThread = True
+            
+            if pressedKey == '#' and pressedKey is not None:
+                pauseThread = False
+                with condition:
+                    condition.notify_all()
+                
+            if pressedKey == 'C' and pressedKey is not None:
                 keyInput = ''
-                showDatetime = True
+                buffer = ''
+                lcd.lcd_clear()
+                lcd.lcd_display_string('Input passcode: ',1,0)
             
             
+    except KeyboardInterrupt:
+        fingerThread.join()

@@ -75,11 +75,7 @@ class FingerPrint:
             return 2
 
     def detectFinger(self):  
-        """
-        0: is exist
-        1: cannot detect
-        2: success
-        """       
+        
         try:
             print('Waiting for finger...')
             while not self.fingerprint.readImage():
@@ -97,7 +93,7 @@ class FingerPrint:
 
             if positionNumber == -1:
                 print('Match not found!')
-                return 1
+                return 0
             else:
                 print('Found template at position #' + str(positionNumber))
                 print('The accuracyScore is: ' + str(accuracyScore))
@@ -108,11 +104,11 @@ class FingerPrint:
             characteristics = str(self.fingerprint.downloadCharacteristics(FINGERPRINT_CHARBUFFER1)).encode('utf-8')
             print('SHA-2: ' + hashlib.sha256(characteristics).hexdigest())
 
-            return 2
+            return 1
         except Exception as e:
             print('Operation failed')
             print('Exception message: ' + str(e))
-            return 1
+            return 0
     
     def deleteFinger(self):
         try:
