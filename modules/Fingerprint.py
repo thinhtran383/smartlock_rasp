@@ -92,8 +92,6 @@ class FingerPrint:
             positionNumber = result[0]
             accuracyScore = result[1]
             
-            if positionNumber >= 0:
-                return 0
 
             if positionNumber == -1:
                 print('Match not found!')
@@ -101,6 +99,7 @@ class FingerPrint:
             else:
                 print('Found template at position #' + str(positionNumber))
                 print('The accuracyScore is: ' + str(accuracyScore))
+                
 
             self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
 
@@ -129,7 +128,7 @@ class FingerPrint:
     def deleteAllTemplate(self):
         self.fingerprint.clearDatabase()
         
-    def checkExistedFinger(self):
+    
         
 
 # Example usage:

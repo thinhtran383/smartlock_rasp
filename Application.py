@@ -53,14 +53,8 @@ def fingerPrintDetect():
             with finger_lock:
                 flag = finger.detectFinger()
                 
-                if flag == 0:
-                    with lcd_lock:
-                        lcd.lcd_clear()
-                        lcd.lcd_display_string('Finger exist', 1, 0)
-                        time.sleep(1.5)
-                        lcd.lcd_clear()
-                        showDatetime = True
-                elif flag == 1:
+                
+                if flag == 1:
                     with lcd_lock:
                         lcd.lcd_clear()
                         lcd.lcd_display_string('Cannot detect', 1, 0)
@@ -68,7 +62,7 @@ def fingerPrintDetect():
                         time.sleep(1.5)
                         lcd.lcd_clear()
                         showDatetime = True
-                elif flag == 2:
+                elif flag == 0:
                     with lcd_lock:
                         lcd.lcd_clear()
                         lcd.lcd_display_string('Unlock success', 1, 0)
@@ -143,7 +137,7 @@ def passcodeThread():
                     pauseProcess = True
                     
                     
-                    if flag == 2:
+                    if flag == 0 or flag == 1:
                         pass
                     else:
                         with finger_lock:      
@@ -163,14 +157,16 @@ def passcodeThread():
                                 lcd.lcd_display_string('finger 2', 2, 0)
                                 time.sleep(1.5)
                                 lcd.lcd_clear()
+                        
+                        showDatetime = True
+                        pauseProcess = False
                         # elif status == 1:
                         #     lcd.lcd_clear()
                         #     lcd.lcd_display_string('Finger existed', 1, 0)
                         #     time.sleep(1.5)
                         #     lcd.lcd_clear()
                             
-                    showDatetime = True
-                    pauseProcess = False
+                    
                 
                 else:
                     with lcd_lock:
