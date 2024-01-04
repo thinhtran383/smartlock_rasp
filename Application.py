@@ -137,7 +137,7 @@ def passcodeThread():
                     pauseProcess = True
                     
                     
-                    if flag == 0 or flag == 1:
+                    if flag == 0 or flag == 1 or hasattr(obj, 'flag'):
                         pass
                     else:
                         with finger_lock:      
@@ -190,12 +190,13 @@ if __name__ == '__main__':
     passcode_thread = threading.Thread(target=passcodeThread)
     passcode_thread.start()
 
-    fingerPrint_thread = threading.Thread(target=fingerPrintDetect)
-    fingerPrint_thread.start()
+   # fingerPrint_thread = threading.Thread(target=fingerPrintDetect)
+   # fingerPrint_thread.start()
     
     try:
         while True:
             time.sleep(1)
+            fingerPrintDetect()
     except KeyboardInterrupt:
         passcode_thread.join()
         fingerPrint_thread.join()
