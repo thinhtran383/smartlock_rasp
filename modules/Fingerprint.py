@@ -1,7 +1,4 @@
 import sys
-
-sys.path.append('/home/thinhtran/smartlock/modules')
-
 import time
 from threading import Lock
 from as608_driver import PyFingerprint, FINGERPRINT_CHARBUFFER1, FINGERPRINT_CHARBUFFER2
@@ -32,20 +29,6 @@ class FingerPrint:
 
     def enrollFinger(self):
         try:
-            print('Waiting for finger...')
-            with self.fingerprint_lock:
-                while not self.fingerprint.readImage():
-                    pass
-
-                self.fingerprint.convertImage(FINGERPRINT_CHARBUFFER1)
-
-                result = self.fingerprint.searchTemplate()
-                positionNumber = result[0]
-
-                if positionNumber >= 0:
-                    print('Template already exists at position #' + str(positionNumber))
-                    return 1
-
                 print('Remove finger...')
                 time.sleep(2)
 
@@ -74,26 +57,8 @@ class FingerPrint:
             print('Exception message: ' + str(e))
             return 2
 
-    def detectFinger(self):
+    def detectFinger(self, positionNumber):
         try:
-            print('Waiting for finger...')
-            with self.fingerprint_lock:
-                while not self.fingerprint.readImage():
-                    pass
-
-                self.fingerprint.convertImage(FINGERPRINT_CHARBUFFER1)
-
-                result = self.fingerprint.searchTemplate()
-                positionNumber = result[0]
-                accuracyScore = result[1]
-
-                if positionNumber == -1:
-                    print('Match not found!')
-                    return 0
-                else:
-                    print('Found template at position #' + str(positionNumber))
-                    print('The accuracyScore is: ' + str(accuracyScore))
-
                 self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
 
                 characteristics = str(self.fingerprint.downloadCharacteristics(FINGERPRINT_CHARBUFFER1)).encode('utf-8')
@@ -105,6 +70,31 @@ class FingerPrint:
             print('Exception message: ' + str(e))
             return 0
 
+    def checkFingerExist(self):
+        try:
+            print('Waiting for finger...')
+            with self.fingerprint_lock:
+                while not self.fingerprint.readImage():
+                    pass
+
+                self.fingerprint.convertImage(FINGERPRINT_CHARBUFFER1)
+
+                result = self.fingerprint.searchTemplate()
+                positionNumber = result[0]
+
+                if positionNumber == -1:
+                    print('Match not found!')
+                    return 0, positionNumber
+                else:
+                    print('Found template at position #' + str(positionNumber))
+                    return 1
+                
+        except Exception as e:
+            print('Operation failed')
+            print('Exception message: ' + str(e))
+            return 0
+        
+    
     def deleteFinger(self):
         try:
             positionNumber = input('Please enter the template position you want to delete: ')
