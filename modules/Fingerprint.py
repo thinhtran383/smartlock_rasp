@@ -1,4 +1,7 @@
 import sys
+
+sys.path.append('/home/thinhtran/smartlock/modules')
+
 import time
 from threading import Lock
 from as608_driver import PyFingerprint, FINGERPRINT_CHARBUFFER1, FINGERPRINT_CHARBUFFER2
