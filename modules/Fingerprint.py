@@ -1,4 +1,7 @@
 import sys
+
+sys.path.append('/home/thinhtran/smartlock/modules')
+
 import time
 from threading import Lock
 from as608_driver import PyFingerprint, FINGERPRINT_CHARBUFFER1, FINGERPRINT_CHARBUFFER2
@@ -84,15 +87,15 @@ class FingerPrint:
 
                 if positionNumber == -1:
                     print('Match not found!')
-                    return 0, positionNumber
+                    return False, positionNumber
                 else:
                     print('Found template at position #' + str(positionNumber))
-                    return 1
+                    return True, positionNumber
                 
         except Exception as e:
             print('Operation failed')
             print('Exception message: ' + str(e))
-            return 0
+            return False
         
     
     def deleteFinger(self):
@@ -113,6 +116,6 @@ class FingerPrint:
         with self.fingerprint_lock:
             self.fingerprint.clearDatabase()
 
-# Example usage:
-# finger = FingerPrint()
-# print(finger.enrollFinger())
+# Example usage
+#if boo == 1:
+ #   finger.detectFinger(posi)

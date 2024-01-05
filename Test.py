@@ -24,11 +24,12 @@ keyInput = ''
 buffer = ''
 rootPassword = '3897'
 
-
+position = None
+status = None
 
 condition = threading.Condition()
 lcdLock = threading.Lock()
-
+fingerLock = threading.Lock()
 
 def currentDateTime():
     currentTime = datetime.now()
@@ -53,37 +54,19 @@ def checkPasscode(passcode):
         
 
 def fingerDetect():
-    global pauseThread
-    global showDatetime
-    global buffer
-    global keyInput
-
+    
+    global status, position
     
     
     while True:
-        status = finger.detectFinger()
-        if status == 0:
-            with lcdLock:
-                lcd.lcd_clear()
-                lcd.lcd_display_string('Cannot detect', 1, 0)
-                lcd.lcd_display_string('finger', 2, 0)
-                time.sleep(1.5)
-                
-        if status == 1:
-            with lcdLock:
-                lcd.lcd_clear()
-                lcd.lcd_display_string('Unlock success', 1, 0)
-                time.sleep(1.5)
-                
-                
-                
-        showDatetime = True
-        buffer = ''
-        keyInput = ''
+        time.sleep(1)
+        with fingerLock:
+            status, position = finger.checkFingerExist()
             
 
 
 if __name__ == '__main__':
+    
     fingerThread = threading.Thread(target=fingerDetect)
     fingerThread.start()
    
@@ -91,7 +74,21 @@ if __name__ == '__main__':
         while True:   
             pressedKey = passcode()
             
-            
+            if status and position != -1:
+                finger.detectFinger(position)
+                status = None
+                position = None
+                lcd.lcd_clear()
+                lcd.lcd_display_string('Unlock success', 1, 0)
+                time.sleep(1.5)
+                showDatetime = True
+            elif status == False and position >= 0:
+                status = None
+                position = None
+                lcd.lcd_clear()
+                lcd.lcd_display_string('Password wrong', 1, 0)
+                time.sleep(1.5)
+                showDatetime = True
             
             if showDatetime:
                 date, currentTime = currentDateTime()
@@ -109,8 +106,17 @@ if __name__ == '__main__':
                     lcd.lcd_display_string('Input passcode:' , 1, 0)
                     lcd.lcd_display_string(buffer, 2, 0)
                 
+                
                 if keyInput[-1] == 'B': # so sanh ky tu cuoi cung
-                    if checkPasscode(keyInput[:-1]):    
+                    if checkPasscode(keyInput[:-2]) and keyInput[-2] == '#':
+                        print('Enroll mode')
+                        if (status == False or status is None) and (position == -1 or position is None):
+                            finger.enrollFinger()
+                            position = None
+                            status = None
+                    
+                    
+                    elif checkPasscode(keyInput[:-1]):    
                         lcd.lcd_clear()
                         lcd.lcd_display_string('Unlock success', 1, 0)
                         time.sleep(1.5)
@@ -131,13 +137,7 @@ if __name__ == '__main__':
                         
                         
                 
-            if pressedKey == '*' and pressedKey is not None:
-                finger.enrollFinger()
             
-            if pressedKey == '#' and pressedKey is not None:
-                pauseThread = False
-                with condition:
-                    condition.notify_all()
                 
             if pressedKey == 'C' and pressedKey is not None:
                 keyInput = ''
