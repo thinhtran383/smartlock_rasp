@@ -32,33 +32,40 @@ class FingerPrint:
 
     def enrollFinger(self):
         try:
+            print('Waiting for finger enroll')
+            with self.fingerprint_lock:
+                while not self.fingerprint.readImage():
+                    pass
+                self.fingerprint.convertImage(FINGERPRINT_CHARBUFFER1)
+                
+                result = self.fingerprint.searchTemplate()
+                positionNumber = result[0]
+                
+                if positionNumber >= 0:
+                    print('Finger exists! position: ' + str(positionNumber))
+                    return 1
+                time.sleep(1.5)
                 print('Remove finger...')
                 time.sleep(2)
-
+                
                 print('Waiting for the same finger again...')
                 while not self.fingerprint.readImage():
                     pass
-
+                
                 self.fingerprint.convertImage(FINGERPRINT_CHARBUFFER2)
-
+                
                 if self.fingerprint.compareCharacteristics() == 0:
-                    print('Fingers do not match')
+                    print('Finger not match')
                     return 2
-
+                
                 self.fingerprint.createTemplate()
-
                 positionNumber = self.fingerprint.storeTemplate()
-                print('Finger enrolled successfully!')
-                print('New template position #' + str(positionNumber))
-
-                self.fingerprint.loadTemplate(positionNumber, FINGERPRINT_CHARBUFFER1)
-                characteristics = str(self.fingerprint.downloadCharacteristics(FINGERPRINT_CHARBUFFER1)).encode('utf-8')
-                print('SHA-2: ' + hashlib.sha256(characteristics).hexdigest())
-                return 3
+                print('Finger success')
+                
         except Exception as e:
-            print('Operation failed!')
-            print('Exception message: ' + str(e))
+            print('Exception!!: ' + str(e))
             return 2
+                    
 
     def detectFinger(self, positionNumber):
         try:
@@ -89,7 +96,7 @@ class FingerPrint:
                     print('Match not found!')
                     return False, positionNumber
                 else:
-                    print('Found template at position #' + str(positionNumber))
+                    print('Found ex template at position #' + str(positionNumber))
                     return True, positionNumber
                 
         except Exception as e:
@@ -117,5 +124,9 @@ class FingerPrint:
             self.fingerprint.clearDatabase()
 
 # Example usage
+'''finger = FingerPrint()
+finger.checkFingerExist()
+finger.enrollFinger()
+print('delete')'''
 #if boo == 1:
  #   finger.detectFinger(posi)
