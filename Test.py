@@ -28,6 +28,7 @@ rootPassword = '3897'
 
 position = None
 status = None
+waitingForInput = None
 
 condition = threading.Condition()
 lcdLock = threading.Lock()
@@ -66,15 +67,18 @@ def fingerDetect():
             status, position = finger.checkFingerExist()
             
 def addNewPasscode(passcode):
-    rs = checkPasscode(passcode)    
+    rs = checkPasscode(passcode,root=True)    
     if rs:
         return False
     else:
         sql = 'Insert into user_data(passcode) values(?)'
         dataInsert = (passcode,)
         return True
-def checkPasscode(passcode):
-    sql = 'select passcode from user_data where passcode = \'' + passcode + '\''
+def checkPasscode(passcode, root=False):
+    if root == False:
+        sql = 'select passcode from user_data where passcode = \'' + passcode + '\''
+    else:
+        sql = 'select passcode from user_data where passcode =  \'' + passcode + '\' and root = 1'
    # print(sql)
     rs = db.executeSql(sql, fetchResult=True)
     
@@ -133,10 +137,73 @@ if __name__ == '__main__':
                     if keyInput[:-1] == '*#*#':
                         lcd.lcd_clear()
                         lcd.lcd_display_string('1.Add 2.Delete F', 1,0)
-                        lcd.lcd_display_string('3.Delete U',2,0)
-                        time.sleep(3)
+                        lcd.lcd_display_string('3.Delete U 4.Exist',2,0)
+                        
+                        startTime = time.time()
+                        
+                        while True:
+                            elapsedTime = time.time() - startTime
+                            
+                            if elapsedTime >=10:
+                                lcd.lcd_clear()
+                                showDatetime = True
+                                keyInput = ''
+                                buffer = ''
+                                break
+                            
+                            pressedKey = passcode()
+                            
+                            if pressedKey is not None:
+                                keyInput = ''
+                                newPasscode = ''
+                                if pressedKey == '1':
+                                    waitingForInput = True
+                                    print('menu 1')
+                                    lcd.lcd_clear()
+                                    lcd.lcd_display_string('Input new pass: ',1,0)
+                                    while waitingForInput:
+                                        pressedKey = passcode()
+                                        if pressedKey is not None:
+                                            if pressedKey == 'B':
+                                               newPasscode = keyInput
+                                               keyInput = ''
+                                               lcd.lcd_clear()
+                                               lcd.lcd_display_string('Input root pass:',1,0)
+                                               
+                                            keyInput += pressedKey
+                                            lcd.lcd_display_string(keyInput,2,0)
+                                            
+                                            
+                            
+                                   # lcd.lcd_clear()
+                                    #showDatetime = True
+                                    #keyInput = ''
+                                    #buffer = ''
+                                    break
+                                elif pressedKey == '2':
+                                    print('menu 2')
+                                    lcd.lcd_clear()
+                                    showDatetime = True
+                                    keyInput = ''
+                                    buffer = ''
+                                    break
+                                elif pressedKey == '3':
+                                    print('menu 3')
+                                    lcd.lcd_clear()
+                                    showDatetime = True
+                                    keyInput = ''
+                                    buffer = ''
+                                    break
+                                elif pressedKey == '4':
+                                    print('menu 4')
+                                    lcd.lcd_clear()
+                                    showDatetime = True
+                                    keyInput = ''
+                                    buffer = ''
+                                    break
+                                        
                     
-                    if checkPasscode(keyInput[:-2]) and keyInput[-2] == '#':
+                    elif checkPasscode(keyInput[:-2]) and keyInput[-2] == '#':
                         print('Enroll mode')
                         while status == None:
                             pass
