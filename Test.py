@@ -66,13 +66,13 @@ def fingerDetect():
         with fingerLock:
             status, position = finger.checkFingerExist()
             
-def addNewPasscode(passcode):
-    rs = checkPasscode(passcode,root=True)    
+def addNewPasscode(rootPasscode, newPasscode):
+    rs = checkPasscode(rootPasscode,root=True)    
     if rs:
         return False
     else:
         sql = 'Insert into user_data(passcode) values(?)'
-        dataInsert = (passcode,)
+        dataInsert = (newPasscode,)
         return True
 def checkPasscode(passcode, root=False):
     if root == False:
