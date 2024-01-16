@@ -30,9 +30,12 @@ class FingerPrint:
     def __init__(self, port='/dev/ttyS0', baudrate=57600, password=0xFFFFFFFF, address=0x00000000):
         pass
 
-    def enrollFinger(self):
+    def enrollFinger(self, lcd):
         try:
+            lcd.lcd_clear()
             print('Waiting for finger enroll')
+            lcd.lcd_display_string('Waiting for ', 1, 0)
+            lcd.lcd_display_string('finger enroll', 2, 0)
             with self.fingerprint_lock:
                 while not self.fingerprint.readImage():
                     pass
@@ -43,12 +46,22 @@ class FingerPrint:
                 
                 if positionNumber >= 0:
                     print('Finger exists! position: ' + str(positionNumber))
-                    return 1
+                    return False, None
                 time.sleep(1.5)
                 print('Remove finger...')
+                
+                lcd.lcd_clear()
+                lcd.lcd_display_string('Remove finger...',1,0)
+                
                 time.sleep(2)
                 
                 print('Waiting for the same finger again...')
+                
+                lcd.lcd_clear()
+                lcd.lcd_display_string('Waiting same' ,1,0)
+                lcd.lcd_display_string('finger again...',2,0)
+                
+    
                 while not self.fingerprint.readImage():
                     pass
                 
@@ -56,15 +69,26 @@ class FingerPrint:
                 
                 if self.fingerprint.compareCharacteristics() == 0:
                     print('Finger not match')
-                    return 2
+                    
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Finger not' ,1,0)
+                    lcd.lcd_display_string('match',2,0)
+                    
+                    return False, None
                 
                 self.fingerprint.createTemplate()
                 positionNumber = self.fingerprint.storeTemplate()
                 print('Finger success')
                 
+                lcd.lcd_clear()
+                lcd.lcd_display_string('Enroll success')
+                time.sleep(1.5)
+                lcd.lcd_clear()
+                
+                return True, positionNumber
         except Exception as e:
             print('Exception!!: ' + str(e))
-            return 2
+            return False, None
                     
 
     def detectFinger(self, positionNumber):
@@ -105,16 +129,13 @@ class FingerPrint:
             return False
         
     
-    def deleteFinger(self):
+    def deleteFinger(self, position):
         try:
-            positionNumber = input('Please enter the template position you want to delete: ')
-            positionNumber = int(positionNumber)
-
             with self.fingerprint_lock:
-                if self.fingerprint.deleteTemplate(positionNumber):
+                if self.fingerprint.deleteTemplate(position):
                     print('Template deleted')
         except Exception as e:
-            print('Exception message: ' + str(e))
+            print('Exception message:1 ' + str(e))
 
     def stop(self):
         sys.exit(1)
@@ -124,9 +145,11 @@ class FingerPrint:
             self.fingerprint.clearDatabase()
 
 # Example usage
-'''finger = FingerPrint()
-finger.checkFingerExist()
-finger.enrollFinger()
-print('delete')'''
+'''
+finger = FingerPrint()
+
+
+finger.deleteAllTemplate()
+'''
 #if boo == 1:
  #   finger.detectFinger(posi)

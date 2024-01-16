@@ -88,8 +88,9 @@ def checkPasscode(passcode, root=False):
         sql = 'select passcode from user_data where passcode = \'' + passcode + '\''
     else:
         sql = 'select passcode from user_data where passcode =  \'' + passcode + '\' and root = 1'
-   # print(sql)
     rs = db.executeSql(sql, fetchResult=True)
+    
+    
     
     if rs:
         return True
@@ -101,8 +102,50 @@ def deleteUser(passcode):
     sqlValues = (passcode,)
     db.executeSql(sql, sqlValues)
     
-if __name__ == '__main__':
+def addNewFinger(passcode, position):
+        print(passcode, position)
+        sql = 'update user_data set finger = ? where passcode = ?'
+        sqlValues = (position, passcode,)
+        rs = db.executeSql(sql, sqlValues)
+
+def checkFingerExist(passcode):
+    '''True:
+        
+'''
     
+    sqlSelect = 'select finger from user_data where passcode = \'' + passcode + '\''
+    rs = db.executeSql(sqlSelect, fetchResult=True)
+    
+    
+    rsStr = (str(rs[0])) if rs[0] is not None else 'None'
+    
+    print(rsStr)
+    
+    if rsStr == '(None,)':
+        return True
+    else:
+        return False
+
+def deleteFinger(passcode):
+    
+    
+    sqlGetPosition = 'select finger from user_data where passcode = ?'
+    sqlValues = (passcode,)  
+    rs = db.executeSql(sqlGetPosition, sqlValues, fetchResult=True)
+    number = rs[0][0]
+    
+    if number is not None:    
+        with fingerLock:
+            finger.deleteFinger(int(number))
+    
+
+    sql = 'update user_data set finger = ? where passcode = ?'
+    values = (None, passcode,)
+    db.executeSql(sql, values)
+
+
+
+if __name__ == '__main__':   
     fingerThread = threading.Thread(target=fingerDetect)
     fingerThread.start()
    
@@ -148,8 +191,8 @@ if __name__ == '__main__':
                 if keyInput[-1] == 'B': # so sanh ky tu cuoi cung
                     if keyInput[:-1] == '*#*#':
                         lcd.lcd_clear()
-                        lcd.lcd_display_string('1.Add 2.Delete F', 1,0)
-                        lcd.lcd_display_string('3.Delete U 4.Exist',2,0)
+                        lcd.lcd_display_string('1.Add 2.Delete U', 1,0)
+                        lcd.lcd_display_string('3.Delete F 4.Exist',2,0)
                         
                         startTime = time.time()
                         
@@ -220,14 +263,116 @@ if __name__ == '__main__':
                                     break
                                 elif pressedKey == '2':
                                     print('menu 2') 
+                                    passcodeToDelete = ''
+                                    keyInput = ''
                                     
+                                    lcd.lcd_clear()
+                                    lcd.lcd_display_string('Input pass to delete', 1, 0)
                                     
+                                    while waitingForInput:
+                                        pressedKey = passcode()
+                                            
+                                        if pressedKey is not None:
+                                            keyInput += pressedKey
+                                            lcd.lcd_display_string('*' * len(keyInput), 2,0)
+                                            
+                                        if pressedKey is not None and pressedKey == 'B':
+                                            passcodeToDelete = keyInput[:-1]
+                                            keyInput = ''
+                                            lcd.lcd_clear()
+                                            lcd.lcd_display_string('Input root pass', 1, 0)
+                                            break
+                                    
+                                    while waitingForInput:
+                                        pressedKey = passcode()
+                                        
+                                        if pressedKey is not None:
+                                            keyInput += pressedKey
+                                            print('KeyInput root: ' + keyInput)
+                                            lcd.lcd_display_string('*' * len(keyInput), 2, 0)
+                                            
+                                        if pressedKey is not None and pressedKey == 'B':
+                                            if(checkPasscode(keyInput[:-1], root=True)):
+                                                lcd.lcd_clear()
+                                                lcd.lcd_display_string('Put your finger',1,0)
+                                                deleteFinger(passcodeToDelete)
+                                                deleteUser(passcodeToDelete)
+                                                
+                                                lcd.lcd_clear()
+                                                lcd.lcd_display_string('Delete success!', 1, 0)
+                                                time.sleep(1.5)
+                                                lcd.lcd_clear()
+                                                
+                                                keyInput = ''
+                                                passcodeToDelete = ''
+                                                buffer = ''
+                                                showDatetime = True
+                                                break
+                                            else:
+                                                lcd.lcd_clear()
+                                                lcd.lcd_display_string('Root pass wrong',1,0)
+                                                time.sleep(1.5)
+                                                lcd.lcd_clear()
+                                                
+                                                keyInput = ''
+                                                passcodeToDelete = ''
+                                                buffer = ''
+                                                showDatetime = True
+                                                break
+                                    break
+                                
                                 elif pressedKey == '3':
                                     print('menu 3')
-                                    lcd.lcd_clear()
-                                    showDatetime = True
                                     keyInput = ''
-                                    buffer = ''
+                                    passcodeFinger = ''
+                                    
+                                    lcd.lcd_clear()
+                                    lcd.lcd_display_string('Input pass:',1,0)
+                                    while waitingForInput:
+                                        pressedKey = passcode()
+                                        
+                                        if pressedKey is not None:
+                                            keyInput += pressedKey
+                                            lcd.lcd_display_string('*' * len(keyInput),2, 0)
+                                            
+                                        if pressedKey is not None and pressedKey == 'B':
+                                            passcodeFinger = keyInput[:-1]
+                                            lcd.lcd_clear()
+                                            lcd.lcd_display_string('Input root pass:',1,0)
+                                            keyInput = ''
+                                            break
+                                    
+                                    while waitingForInput:
+                                        pressedKey = passcode()
+                                        
+                                        if pressedKey is not None:
+                                            keyInput += pressedKey
+                                            lcd.lcd_display_string('*' * len(keyInput),2,0)
+                                            
+                                        if pressedKey is not None and pressedKey == 'B':
+                                            if checkPasscode(keyInput[:-1], root=True):
+                                                lcd.lcd_clear()
+                                                lcd.lcd_display_string('Put finger again',1,0)
+                                                deleteFinger(passcodeFinger)
+                                                lcd.lcd_clear()
+                                                lcd.lcd_display_string('Finger deleted ',1,0)
+                                                time.sleep(1.5)
+                                                lcd.lcd_clear()
+                                                keyInput = ''
+                                                buffer = ''
+                                                passcodeFinger = ''
+                                                showDatetime = True
+                                                break
+                                            else:
+                                                lcd.lcd_clear()
+                                                lcd.lcd_display_string('Root pass wrong',1,0)
+                                                time.sleep(1.5)
+                                                lcd.lcd_clear()
+                                                keyInput = ''
+                                                buffer = ''
+                                                passcodeFinger = ''
+                                                showDatetime = True
+                                                break
                                     break
                                 elif pressedKey == '4':
                                     print('menu 4')
@@ -240,19 +385,39 @@ if __name__ == '__main__':
                     
                     elif checkPasscode(keyInput[:-2]) and keyInput[-2] == '#':
                         print('Enroll mode')
-                        while status == None:
-                            pass
                         
-                        if (status == False) and (position == -1):
-                            print('Run')
-                            finger.enrollFinger()
-                            position = None
-                            status = None
-                        else:
+                        if checkFingerExist(keyInput[:-2]) == False:
+                            print('ex')
+                            lcd.lcd_clear()
+                            lcd.lcd_display_string('Finger existed', 1, 0)
+                            time.sleep(1.5)
+                            
                             keyInput = ''
                             buffer = ''
                             showDatetime = True
-                    
+                        
+                                                    
+                        elif checkFingerExist(keyInput[:-2]) == True:
+                            print('Run')
+                            s, p = finger.enrollFinger(lcd)
+                            
+                            print('s,p: ' + str(s), str(p))
+                            
+                            addNewFinger(keyInput[:-2], p)
+                            
+                            keyInput = ''
+                            buffer = ''
+                            showDatetime = True
+                            
+                            position = None
+                            status = None
+                        else:
+                            lcd.lcd_clear()
+                            lcd.lcd_display_string('Cannot detect', 1, 0)
+                            lcd.lcd_display_string('try again',2, 0)
+                            keyInput = ''
+                            buffer = ''
+                            showDatetime = True
                     
                     elif checkPasscode(keyInput[:-1]):    
                         lcd.lcd_clear()

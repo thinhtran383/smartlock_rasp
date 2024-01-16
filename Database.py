@@ -18,9 +18,24 @@ from DataManager import DataManager
 db = DataManager()
 
 
-selectSql = 'select * from user_data'
+selectSql = 'drop table if exists user_data'
 
-result = db.executeSql(selectSql, fetchResult=True)
+create = '''
+    create table user_data(
+        id integer primary key autoincrement,
+        passcode text,
+        finger text default null,
+        root boolean default 0
+    )
+'''
+insert = 'insert into user_data(passcode,root) values(?,?)'
+values = ('3897','1')
+
+select = 'select finger from user_data where passcode = \'3897\' '
+
+selectAll = 'select * from user_data'
+
+result = db.executeSql(selectAll, fetchResult=True)
 
 print(result)
 
