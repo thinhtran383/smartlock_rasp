@@ -1,4 +1,4 @@
-import sys
+
 from datetime import datetime
 from modules import I2C_LCD_driver
 from modules.keypad_module import Keypad
@@ -6,6 +6,9 @@ from modules.led_module import LEDController
 from modules.Fingerprint import FingerPrint
 from datetime import datetime
 from DataManager import DataManager
+from functions.MqttClient import message
+
+
 import threading
 import time
 
@@ -33,6 +36,10 @@ waitingForInput = None
 condition = threading.Condition()
 lcdLock = threading.Lock()
 fingerLock = threading.Lock()
+
+
+
+
 
 def currentDateTime():
     currentTime = datetime.now()
@@ -150,7 +157,11 @@ if __name__ == '__main__':
     fingerThread.start()
    
     try:
-        while True:   
+        while True:
+            if message == '{"data":"led_off"}':
+                print('1')
+            
+            
             pressedKey = passcode()
             
             if status and position != -1:
