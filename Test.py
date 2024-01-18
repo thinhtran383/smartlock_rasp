@@ -6,22 +6,32 @@ from modules.led_module import LEDController
 from modules.Fingerprint import FingerPrint
 from datetime import datetime
 from DataManager import DataManager
-from functions.MqttClient import message
+from functions.MqttSub import MQTTHandler
 
 
 import threading
 import time
 
+# Define mqtt broker
+brokerAddress = '0.tcp.ap.ngrok.io'
+port = 17753
+topic = '#'
+led = LEDController()
+mqtt = MQTTHandler(brokerAddress, port, topic)
 
+# Define pin for keypad
 rowPins = [17, 27, 22, 5]
 colPins = [23, 24, 25, 16]
 
+
+# Define variable module
 lcd = I2C_LCD_driver.lcd()
 keypad = Keypad(rowPins, colPins)
 finger = FingerPrint()
 db = DataManager()
+led = LEDController()
 
-waitingForInput = True
+# Define status
 showDatetime = True
 pauseThread = False
 
@@ -33,7 +43,8 @@ position = None
 status = None
 waitingForInput = None
 
-condition = threading.Condition()
+
+# Locking thread
 lcdLock = threading.Lock()
 fingerLock = threading.Lock()
 
@@ -155,14 +166,18 @@ def deleteFinger(passcode):
 if __name__ == '__main__':   
     fingerThread = threading.Thread(target=fingerDetect)
     fingerThread.start()
-   
+    mqtt.connect()
+    
     try:
         while True:
-            if message == '{"data":"led_off"}':
-                print('1')
-            
-            
             pressedKey = passcode()
+            
+            if mqtt.message is not None:
+                if mqtt.message == 'led-on':
+                    led.ledOn()
+                if mqtt.message == 'led-off':
+                    led.ledOff()
+                
             
             if status and position != -1:
                 finger.detectFinger(position)

@@ -19,10 +19,10 @@ def on_message(client, userdata, msg):
     global message
     message = f'{msg.payload.decode()}'
     
-    if message == '{"data":"led_on"}':
+    if message == 'led-on':
         GPIO.output(21, 1)
     
-    if message == '{"data":"led_off"}':
+    if message == 'led-off':
         GPIO.output(21, 0)
 
 

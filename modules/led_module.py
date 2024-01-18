@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 import time
 
 class LEDController:
-    def __init__(self, pin=20):
+    def __init__(self, pin=21):
         self.pin = pin
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -11,11 +11,10 @@ class LEDController:
 
     def ledOn(self):
         GPIO.output(self.pin, 1)
-        print('LED is ON')
+      
 
     def ledOff(self):
         GPIO.output(self.pin, 0)
-        print('LED is OFF')
 
     def cleanup(self):
         GPIO.cleanup()
