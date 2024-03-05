@@ -31,7 +31,7 @@ client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
 
-client.connect('0.tcp.ap.ngrok.io', 10376, 60)
+client.connect('0.tcp.ap.ngrok.io', 12308, 60)
 client.loop_forever()
 print('pass')
 

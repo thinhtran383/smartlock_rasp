@@ -1,9 +1,9 @@
-
 from datetime import datetime
 from modules import I2C_LCD_driver
 from modules.keypad_module import Keypad
 from modules.led_module import LEDController
 from modules.Fingerprint import FingerPrint
+from modules.Button import Button
 from datetime import datetime
 from DataManager import DataManager
 from functions.MqttSub import MQTTHandler
@@ -11,10 +11,11 @@ from functions.MqttSub import MQTTHandler
 
 import threading
 import time
+import requests
 
 # Define mqtt broker
 brokerAddress = '0.tcp.ap.ngrok.io'
-port = 17753
+port = 11606
 topic = '#'
 led = LEDController()
 mqtt = MQTTHandler(brokerAddress, port, topic)
@@ -30,10 +31,13 @@ keypad = Keypad(rowPins, colPins)
 finger = FingerPrint()
 db = DataManager()
 led = LEDController()
+button = Button(20)
 
 # Define status
 showDatetime = True
 pauseThread = False
+doorIsOpen = False
+
 
 keyInput = ''
 buffer = ''
@@ -68,11 +72,11 @@ def currentDateTime():
 def passcode():
     key = str(keypad.get_key())
     return key if key != 'None' else None
+
+
+    
         
-'''
-def checkPasscode(passcode):
-    return passcode == rootPassword
-'''       
+       
 
 def fingerDetect():
     
@@ -100,21 +104,38 @@ def addNewPasscode(rootPasscode, newPasscode):
     
     return False
     
-    
+'''    
 def checkPasscode(passcode, root=False):
     if root == False:
         sql = 'select passcode from user_data where passcode = \'' + passcode + '\''
     else:
         sql = 'select passcode from user_data where passcode =  \'' + passcode + '\' and root = 1'
     rs = db.executeSql(sql, fetchResult=True)
-    
-    
-    
     if rs:
         return True
     else:
         return False
-
+'''
+def checkPasscode(passcode, root=False):
+    apiEndpoint = f'http://chanlepro.online/api/v1/secure/{passcode}'
+    
+    try:
+        response = requests.post(apiEndpoint)
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            if 'data' in result and result['data'] is True:
+                return True
+            else:
+                return False
+        else:
+            print('err')
+            return False
+    except Exception as e:
+        print(f'ex: {e}')
+        return False
+    
 def deleteUser(passcode):
     sql = 'delete from user_data where passcode = ? and root = 0'
     sqlValues = (passcode,)
@@ -171,12 +192,25 @@ if __name__ == '__main__':
     try:
         while True:
             pressedKey = passcode()
+            doorIsOpen = button.checkButtonState()
+            
+            if doorIsOpen:
+                print('door is open')
+            
             
             if mqtt.message is not None:
-                if mqtt.message == 'led-on':
+                if mqtt.message == 'unlock':
                     led.ledOn()
-                if mqtt.message == 'led-off':
+                    time.sleep(2)
                     led.ledOff()
+                    with lcdLock:
+                        lcd.lcd_clear()
+                        lcd.lcd_display_string('Unlock', 1, 0)
+                        time.sleep(2)
+                        lcd.lcd_clear()
+                        showDatetime = True
+                    
+                    mqtt.message = None
                 
             
             if status and position != -1:

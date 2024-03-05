@@ -1,59 +1,53 @@
-'''import sqlite3
-
-conn = sqlite3.connect('lockdatabase.db')
-
-cursor = conn.cursor()
-
-cursor.execute('select * from user_data')
-rows = cursor.fetchall()
-
-for row in rows:
-    print(row)
-    
-conn.close()
-'''
-
-
-from DataManager import DataManager
-db = DataManager()
-
-
-selectSql = 'drop table if exists user_data'
-
-create = '''
-    create table user_data(
-        id integer primary key autoincrement,
-        passcode text,
-        finger text default null,
-        root boolean default 0
-    )
-'''
-insert = 'insert into user_data(passcode,root) values(?,?)'
-values = ('3897','1')
-
-select = 'select finger from user_data where passcode = \'3897\' '
-
-selectAll = 'select * from user_data'
-
-result = db.executeSql(selectAll, fetchResult=True)
-
-print(result)
-
-'''
-insert= 'Insert into user_data (passcode) values (?)'
-insertValues = ('3897',)
-db.executeSql(insert, insertValues)'''
-
-
-'''
 import sqlite3
 
-conn = sqlite3.connect('lockdatabase.db')
+
+# Kết nối đến cơ sở dữ liệu (nếu không tồn tại, sẽ tự động tạo mới)
+conn = sqlite3.connect('/home/thinhtran/smartlock/flask/smart_lock.db')
+
+# Tạo đối tượng cursor để thực hiện các truy vấn SQL
 cursor = conn.cursor()
 
-alterSql = 'update user_data set root = 1 where passcode = \'3897\''
-cursor.execute(alterSql)
+# Tạo bảng Users
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS Users (
+        userId INTEGER PRIMARY KEY AUTOINCREMENT,
+        username VARCHAR(50) NOT NULL
+    )
+''')
 
+
+
+# Tạo bảng History với tùy chọn ON DELETE NO ACTION
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS History (
+        historyId INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER,
+        time DATETIME NOT NULL,
+        FOREIGN KEY (userId) REFERENCES Users (userId) ON DELETE NO ACTION
+    )
+''')
+
+# Tạo bảng secures
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS Secures (
+        secureId INTEGER PRIMARY KEY AUTOINCREMENT,
+        passcode VARCHAR(50) NOT NULL,
+        positionFinger VARCHAR(50),
+        accessCount int DEFAULT 0,
+        temporaryPasscode TINYINT(1) DEFAULT 0,
+        userId INTEGER,
+        root TINYINT(1) DEFAULT 0,
+        FOREIGN KEY (userId) REFERENCES Users (userId)
+    )
+''')
+
+# Tạo index cho bảng History
+cursor.execute('CREATE INDEX IF NOT EXISTS idx_userId_history ON History (userId)')
+
+# Tạo index cho bảng secures
+cursor.execute('CREATE INDEX IF NOT EXISTS idx_userId_secures ON secures (userId)')
+
+# Lưu các thay đổi và đóng kết nối
 conn.commit()
 conn.close()
-'''
+
