@@ -15,7 +15,7 @@ import requests
 
 # Define mqtt broker
 brokerAddress = '0.tcp.ap.ngrok.io'
-port = 11606
+port = 15560
 topic = '#'
 led = LEDController()
 mqtt = MQTTHandler(brokerAddress, port, topic)
@@ -32,6 +32,10 @@ finger = FingerPrint()
 db = DataManager()
 led = LEDController()
 button = Button(20)
+
+tmp_finger = FingerPrint()
+
+#finger.enrollFinger(lcd)
 
 # Define status
 showDatetime = True
@@ -55,7 +59,7 @@ fingerLock = threading.Lock()
 
 
 
-
+# Lay thoi gian hien tai
 def currentDateTime():
     currentTime = datetime.now()
     
@@ -68,7 +72,7 @@ def currentDateTime():
     return formattedDate, formattedTime
         
         
-
+# Tra ve ki tu cua keypad
 def passcode():
     key = str(keypad.get_key())
     return key if key != 'None' else None
@@ -77,47 +81,23 @@ def passcode():
     
         
        
-
-def fingerDetect():
-    
-    global status, position
-    
-    
+# thread chay van tay (finger position)
+def fingerDetect():    
+    global status, position  
     while True:
         time.sleep(1.5)
         with fingerLock:
             status, position = finger.checkFingerExist()
-            
-def addNewPasscode(rootPasscode, newPasscode):
-    root = checkPasscode(rootPasscode,root=True)    
-    new = checkPasscode(newPasscode)
-    
-    print('add root: ' + str(root))
-    print('add new: ' + str(new))
 
-    if root:
-        if new == False:
-            sql = 'insert into user_data(passcode) values(?)'
-            sqlValues = (newPasscode,)
-            db.executeSql(sql, sqlValues)
-            return True
-    
+
+# them passcode moi tu keypad (BO)
+def addNewPasscode(rootPasscode, newPasscode):
+    # Bo
     return False
     
-'''    
+# check passcode nhap vao
 def checkPasscode(passcode, root=False):
-    if root == False:
-        sql = 'select passcode from user_data where passcode = \'' + passcode + '\''
-    else:
-        sql = 'select passcode from user_data where passcode =  \'' + passcode + '\' and root = 1'
-    rs = db.executeSql(sql, fetchResult=True)
-    if rs:
-        return True
-    else:
-        return False
-'''
-def checkPasscode(passcode, root=False):
-    apiEndpoint = f'http://chanlepro.online/api/v1/secure/{passcode}'
+    apiEndpoint = f'http://127.0.0.1:5000/api/v1/secure/{passcode}'
     
     try:
         response = requests.post(apiEndpoint)
@@ -135,54 +115,133 @@ def checkPasscode(passcode, root=False):
     except Exception as e:
         print(f'ex: {e}')
         return False
+
+
+# check van tay
+def finger_open(finger_position):
+    apiEndpoint = f'http://127.0.0.1:5000/api/v1/secure/fingerPosition/{finger_position}'
     
+    try:
+        response = requests.post(apiEndpoint)
+        
+        if response.status_code == 200:
+            return True
+        else:
+            print('err')
+            return False
+    except Exception as e:
+        print(f'err: {e}')
+        return False
+
+
+
+# xoa user tu keypad (DONE) xoa toan bo
 def deleteUser(passcode):
-    sql = 'delete from user_data where passcode = ? and root = 0'
-    sqlValues = (passcode,)
-    db.executeSql(sql, sqlValues)
+    #sql = 'delete from user_data where passcode = ? and root = 0'
     
+    sql = 'select userId from secure where passcode = ? and root = 0'
+    sqlValues = (passcode,)
+    rs = db.executeSql(sql, sqlValues, fetchResult=True)
+    
+    if rs:
+        (value,) = rs[0] # tahc tuple
+        apiEndpoint = f'http://127.0.0.1:5000/api/v1/secure/deleteUser/{value}'
+        
+        try:
+            response = requests.delete(apiEndpoint)
+            if response.status_code == 200:
+                return True
+            else:
+                return False
+        except Exception as e:
+            print(f'err: {e}')
+            return False
+    else:
+        return False
+
+
+
+# them van tay moi finger Position (TODO)
 def addNewFinger(passcode, position):
         print(passcode, position)
-        sql = 'update user_data set finger = ? where passcode = ?'
-        sqlValues = (position, passcode,)
-        rs = db.executeSql(sql, sqlValues)
-
-def checkFingerExist(passcode):
-    '''True:
         
-'''
+        
+        sql = 'update secure set positionFinger = ? where passcode = ?'
+        sql_values = (position, passcode,)
+        rs = db.executeSql(sql, sql_values)
+
+
+# Kiem tra van tay ton tai chua khi them tu keypad (TODO)
+def checkFingerExist(passcode):
+    sql_get_position = 'select positionFinger from secure where passcode = ?'
+    sql_values = (passcode,)
     
-    sqlSelect = 'select finger from user_data where passcode = \'' + passcode + '\''
-    rs = db.executeSql(sqlSelect, fetchResult=True)
+    rs = db.executeSql(sql_get_position, sql_values, fetchResult=True)
+    
+    (value,) = rs[0]
+    
+    print(value)
+    
+    if value is None:
+        return False
+    else:
+        return True
+
+print('ton tai van tay' + str(checkFingerExist('000000')))
+# Xoa van tay ra khoi db va finger print (TODO) chua test
+def deleteFinger(passcode):
+    
+    # Tim position finger trong db
+    sql_get_position = 'select positionFinger from secure where passcode = ?'
+    sql_values = (passcode,)
+    
+    rs = db.executeSql(sql_get_position, sql_values, fetchResult=True)
+    if rs:
+        (number,) = rs[0]
+    else:
+        number = None
     
     
-    rsStr = (str(rs[0])) if rs[0] is not None else 'None'
+    # Thuc hien xoa trong phan cung
+    if number is not None:    
+        tmp_finger.deleteFinger(int(number))
     
-    print(rsStr)
     
-    if rsStr == '(None,)':
+        #Cap nhat lai trong db
+        sql = 'update secure set positionFinger = ? where passcode = ?'
+        values = (None, passcode,)
+        db.executeSql(sql, values)
+
+
+
+def check_root_passcode(passcode):
+    sql = 'select root from secure where passcode = ?'
+    sql_values = (passcode,)
+    rs = db.executeSql(sql, sql_values, fetchResult=True)
+    
+    if rs:
         return True
     else:
         return False
 
-def deleteFinger(passcode):
-    
-    
-    sqlGetPosition = 'select finger from user_data where passcode = ?'
-    sqlValues = (passcode,)  
-    rs = db.executeSql(sqlGetPosition, sqlValues, fetchResult=True)
-    number = rs[0][0]
-    
-    if number is not None:    
-        with fingerLock:
-            finger.deleteFinger(int(number))
-    
 
-    sql = 'update user_data set finger = ? where passcode = ?'
-    values = (None, passcode,)
-    db.executeSql(sql, values)
+def led_control():
+    led.ledOn()
+    time.sleep(2)
+    led.ledOff()
+    
+def check_passcode_local(passcode):
+    sql = 'select passcode from secure where passcode = ?'
+    sql_values = (passcode,)
+    rs = db.executeSql(sql, sql_values, fetchResult=True)
+    if rs:
+        return True
+    else:
+        return False
 
 
+
+print(str(check_passcode_local('88888888')))
 
 if __name__ == '__main__':   
     fingerThread = threading.Thread(target=fingerDetect)
@@ -192,42 +251,42 @@ if __name__ == '__main__':
     try:
         while True:
             pressedKey = passcode()
-            doorIsOpen = button.checkButtonState()
-            
-            if doorIsOpen:
-                print('door is open')
             
             
             if mqtt.message is not None:
                 if mqtt.message == 'unlock':
-                    led.ledOn()
-                    time.sleep(2)
-                    led.ledOff()
-                    with lcdLock:
-                        lcd.lcd_clear()
-                        lcd.lcd_display_string('Unlock', 1, 0)
-                        time.sleep(2)
-                        lcd.lcd_clear()
-                        showDatetime = True
-                    
+                    led_control()             
                     mqtt.message = None
                 
             
             if status and position != -1:
-                finger.detectFinger(position)
+                store_position = position
                 status = None
                 position = None
-                lcd.lcd_clear()
-                lcd.lcd_display_string('Unlock success', 1, 0)
-                time.sleep(1.5)
-                showDatetime = True
+                
+                store = finger_open(store_position)
+                if store :
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Unlock success', 1, 0)
+                    led_control()
+                    showDatetime = True
+                elif store is not True:
+                    tmp_finger.deleteFinger(int(store_position))
+                    status = None
+                    position = None
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Password wrong', 1, 0)
+                    time.sleep(1.5)
+                    showDatetime = True
+                       
+                    
             elif status == False:
-                status = None
-                position = None
-                lcd.lcd_clear()
-                lcd.lcd_display_string('Password wrong', 1, 0)
-                time.sleep(1.5)
-                showDatetime = True
+                    status = None
+                    position = None
+                    lcd.lcd_clear()
+                    lcd.lcd_display_string('Password wrong', 1, 0)
+                    time.sleep(1.5)
+                    showDatetime = True
             
             if showDatetime:
                 date, currentTime = currentDateTime()
@@ -251,8 +310,8 @@ if __name__ == '__main__':
                 if keyInput[-1] == 'B': # so sanh ky tu cuoi cung
                     if keyInput[:-1] == '*#*#':
                         lcd.lcd_clear()
-                        lcd.lcd_display_string('1.Add 2.Delete U', 1,0)
-                        lcd.lcd_display_string('3.Delete F 4.Exist',2,0)
+                        lcd.lcd_display_string('1.Delete U', 1,0)
+                        lcd.lcd_display_string('2.Delete F 3.Exist',2,0)
                         
                         startTime = time.time()
                         
@@ -273,7 +332,9 @@ if __name__ == '__main__':
                                 newPasscode = ''
                                 waitingForInput = True
                                 
-                                if pressedKey == '1':
+                                
+                                # Vao option none: them user moi (BO)
+                                if pressedKey == 'vnb':
                                     lcd.lcd_clear()
                                     lcd.lcd_display_string('Input new pass:',1,0)
                                     while waitingForInput:
@@ -321,8 +382,10 @@ if __name__ == '__main__':
                                                 break
                                     print('menu 1')
                                     break
-                                elif pressedKey == '2':
-                                    print('menu 2') 
+                                
+                                # Vao option 1: xoa user
+                                elif pressedKey == '1':
+                                    print('menu 1') 
                                     passcodeToDelete = ''
                                     keyInput = ''
                                     
@@ -352,9 +415,12 @@ if __name__ == '__main__':
                                             lcd.lcd_display_string('*' * len(keyInput), 2, 0)
                                             
                                         if pressedKey is not None and pressedKey == 'B':
-                                            if(checkPasscode(keyInput[:-1], root=True)):
+                                            # Co ton tai hay khong thi van luon xoa
+                                            if(check_root_passcode(keyInput[:-1])):
                                                 lcd.lcd_clear()
                                                 lcd.lcd_display_string('Put your finger',1,0)
+                                                
+                                                
                                                 deleteFinger(passcodeToDelete)
                                                 deleteUser(passcodeToDelete)
                                                 
@@ -362,7 +428,7 @@ if __name__ == '__main__':
                                                 lcd.lcd_display_string('Delete success!', 1, 0)
                                                 time.sleep(1.5)
                                                 lcd.lcd_clear()
-                                                
+                                                showDatetime = True
                                                 keyInput = ''
                                                 passcodeToDelete = ''
                                                 buffer = ''
@@ -381,8 +447,9 @@ if __name__ == '__main__':
                                                 break
                                     break
                                 
-                                elif pressedKey == '3':
-                                    print('menu 3')
+                                # Vao option 2: xoa van tay
+                                elif pressedKey == '2':
+                                    print('menu 2')
                                     keyInput = ''
                                     passcodeFinger = ''
                                     
@@ -395,8 +462,12 @@ if __name__ == '__main__':
                                             keyInput += pressedKey
                                             lcd.lcd_display_string('*' * len(keyInput),2, 0)
                                             
-                                        if pressedKey is not None and pressedKey == 'B':
-                                            passcodeFinger = keyInput[:-1]
+                                        if pressedKey is not None and pressedKey == 'B':    
+                                            passcodeFinger = keyInput[:-1] # passcode cua nguoi dung luu tai day
+                                            #print('Passcode nguoi dung' + passcodeFinger)
+                                            if check_passcode_local(passcodeFinger) is not True: # neu nguoi dung nhap sai thi thoat
+                                                break
+                                            
                                             lcd.lcd_clear()
                                             lcd.lcd_display_string('Input root pass:',1,0)
                                             keyInput = ''
@@ -405,14 +476,29 @@ if __name__ == '__main__':
                                     while waitingForInput:
                                         pressedKey = passcode()
                                         
+                                        
+                                        if check_passcode_local(passcodeFinger) == False: 
+                                                lcd.lcd_clear()
+                                                lcd.lcd_display_string('Wrong passcode',1,0)
+                                                time.sleep(1.5)
+                                                keyInput = ''
+                                                buffer = ''
+                                                passcodeFinger = ''
+                                                showDatetime = True
+                                                break
+                                        
                                         if pressedKey is not None:
                                             keyInput += pressedKey
+                                        
                                             lcd.lcd_display_string('*' * len(keyInput),2,0)
                                             
                                         if pressedKey is not None and pressedKey == 'B':
-                                            if checkPasscode(keyInput[:-1], root=True):
+                                            if check_root_passcode(keyInput[:-1]):
                                                 lcd.lcd_clear()
                                                 lcd.lcd_display_string('Put finger again',1,0)
+                                               # with fingerLock:
+                                                    
+                                                    
                                                 deleteFinger(passcodeFinger)
                                                 lcd.lcd_clear()
                                                 lcd.lcd_display_string('Finger deleted ',1,0)
@@ -434,8 +520,10 @@ if __name__ == '__main__':
                                                 showDatetime = True
                                                 break
                                     break
-                                elif pressedKey == '4':
-                                    print('menu 4')
+                                
+                                # Vao option 4: Thoat ra khoi menu
+                                elif pressedKey == '3':
+                                    print('menu 3')
                                     lcd.lcd_clear()
                                     showDatetime = True
                                     keyInput = ''
@@ -443,10 +531,11 @@ if __name__ == '__main__':
                                     break
                                         
                     
-                    elif checkPasscode(keyInput[:-2]) and keyInput[-2] == '#':
+                    #Them van tay moi neu nhap dung passcode
+                    elif check_passcode_local(keyInput[:-2]) and keyInput[-2] == '#':
                         print('Enroll mode')
                         
-                        if checkFingerExist(keyInput[:-2]) == False:
+                        if checkFingerExist(keyInput[:-2]) == True:
                             print('ex')
                             lcd.lcd_clear()
                             lcd.lcd_display_string('Finger existed', 1, 0)
@@ -457,7 +546,7 @@ if __name__ == '__main__':
                             showDatetime = True
                         
                                                     
-                        elif checkFingerExist(keyInput[:-2]) == True:
+                        elif checkFingerExist(keyInput[:-2]) == False:
                             print('Run')
                             s, p = finger.enrollFinger(lcd)
                             
@@ -482,7 +571,8 @@ if __name__ == '__main__':
                     elif checkPasscode(keyInput[:-1]):    
                         lcd.lcd_clear()
                         lcd.lcd_display_string('Unlock success', 1, 0)
-                        time.sleep(1.5)
+                        led_control()
+                        #time.sleep(1.5)
                         lcd.lcd_clear()
                         
                         keyInput =''
@@ -499,7 +589,7 @@ if __name__ == '__main__':
                         showDatetime = True
                         
                         
-            
+            # Xoa man hinh
             if pressedKey == 'C' and pressedKey is not None:
                 keyInput = ''
                 buffer = ''

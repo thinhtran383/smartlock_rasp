@@ -147,8 +147,6 @@ class FingerPrint:
 # Example usage
 '''
 finger = FingerPrint()
-
-
 finger.deleteAllTemplate()
 '''
 #if boo == 1:

@@ -1,18 +1,28 @@
 from flask import Flask, jsonify,request
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_cors import CORS
 
+
+
+
 import paho.mqtt.client as mqtt
+import paho.mqtt.publish as publish
+
 
 app = Flask(__name__)
+
+
+
 CORS(app)
 # Cấu hình cơ sở dữ liệu SQLite
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/thinhtran/smartlock/flask/smart_lock.db'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/thinhtran/smartlock/flask/smart_lock.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/thinhtran/smartlock/smart_lock.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Cau hinh ket noi mqtt
 mqtt_broker_address = '0.tcp.ap.ngrok.io'
+mqtt_port = 15560
 mqtt_client = mqtt.Client()
 
 # Khởi tạo đối tượng SQLAlchemy
@@ -43,11 +53,16 @@ with app.app_context():
     db.create_all()
 
 
+def publish_message(topic, message):
+    publish.single(topic,message,hostname=mqtt_broker_address, port=mqtt_port)
+
+
 #Route xoa user, secure thong qua passcode
 @app.route('/api/v1/secure/deleteUser/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
     try:
         user_to_delete = User.query.get(user_id)
+        
         if user_to_delete is None:
             return jsonify({
                 'status': False,
@@ -57,6 +72,13 @@ def delete_user(user_id):
         update_user_id_to_null(user_id)
         #Xoa entry trong bang secure (neu co)
         secure_to_delete = Secure.query.filter_by(userId=user_id).first()
+        '''
+        if secure_to_delete.positionFinger is not None:
+            with fingerLock:
+                finger = FingerPrint()
+                finger.deleteFinger(int(secure_to_delete.positionFinger))
+                del finger
+                '''
         if secure_to_delete:
             db.session.delete(secure_to_delete)
            
@@ -68,7 +90,7 @@ def delete_user(user_id):
             'status': 'OK',
             'message': 'User and associated secure entry deleted successfully',
             'data': None
-        })
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -91,13 +113,23 @@ def update_user_id_to_null(user_id):
         
 #Route gui message qua mqtt
 @app.route('/sendMessage/<message>', methods=['POST'])
-def send_message(message):
+def send_message(message, topic='test'):
+    
     try:
+        '''
+        topic_param = request.args.get('topic')
+        
+        if topic_param is None:
+            topic = 'test'
+        
+        else:
+            topic = topic_param
+        '''
         # Ket noi mqtt broker
-        mqtt_client.connect(mqtt_broker_address, 11194, 60)
+        mqtt_client.connect(mqtt_broker_address, 15560, 60)
         
         # Send message
-        mqtt_client.publish('test', message)
+        mqtt_client.publish(topic, message)
         
        
         
@@ -138,6 +170,34 @@ def get_history():
             }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route('/api/v1/secure/fingerPosition/<finger_position>', methods=['POST'])
+def check_position_finger(finger_position):
+    try:
+        finger_exists = Secure.query.filter_by(positionFinger=finger_position).first()
+        
+        if finger_exists:
+            send_message('opened', 'finger')
+            new_history_entry = History(userId=finger_exists.userId, time=datetime.now())
+            db.session.add(new_history_entry)
+            db.session.commit()
+            
+            return jsonify({
+            'status' : 'Ok',
+            'message' : 'Unlocked' if finger_exists is not None else 'Passcode wrong',
+            'data' : None
+        }), 200
+        else:
+            return jsonify({
+                'status' : 'Ok',
+                'message' : 'Unlocked' if finger_exists is not None else 'Passcode wrong',
+                'data' : finger_exists is not None
+            }), 501
+    except Exception as e:
+        return jsonify({
+            'error': str(e)
+        }), 500
+
 
 # Route de kiem tra passcode
 @app.route('/api/v1/secure/<passcode>', methods=['POST'])
@@ -149,6 +209,7 @@ def check_passcode(passcode):
         
         # Neu temporaryPasscode = True, giam accesscount va xoa neu accesscount = 0  
         if passcode_exists:
+            send_message('opened', 'openDoor')
             if passcode_exists.temporaryPasscode:
                 passcode_exists.accessCount -= 1
                 if passcode_exists.accessCount <= 0:
